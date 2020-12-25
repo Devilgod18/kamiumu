@@ -272,7 +272,7 @@ function play(guild, song) {
 		return;
 	}
 
-	const dispatcher = serverQueue.connection.playStream(ytdl(song.url,{quality: '128,127,120,96,95,94,93',highWaterMark: 1<<25 },{highWaterMark: 1}))
+	const dispatcher = serverQueue.connection.playStream(ytdl(song.url,{filter: 'audioonly', quality: '128,127,120,96,95,94,93',highWaterMark: 1<<25 },{highWaterMark: 1}))
 
 		.on('end', () => {
 

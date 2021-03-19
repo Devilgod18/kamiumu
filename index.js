@@ -1,4 +1,4 @@
-﻿const Discord = require('discord.js');
+﻿const {Discord, util} = require('discord.js');
 const {
 	prefix,
 	
@@ -85,9 +85,9 @@ async function execute(message, serverQueue) {
 		return message.channel.send('I need the permissions to join and speak in your voice channel!');
 	}
 
-	const songInfo = await ytdl.getInfo(args[1]);
+	const songInfo = await ytdl.getInfo(args[0].replace(/<(.+)>/g, '$1'));
 	const song = {
-		title: Discord.escapeMarkdown(songInfo.videoDetails.title),
+		title: util.escapeMarkdown(songInfo.videoDetails.title),
 		url: songInfo.videoDetails.video_url,
 	};
 

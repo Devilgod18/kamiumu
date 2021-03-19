@@ -1,4 +1,4 @@
-﻿const {Discord, util} = require('discord.js');
+﻿const Discord = require('discord.js');
 const {
 	prefix,
 	
@@ -87,7 +87,7 @@ async function execute(message, serverQueue) {
 
 	const songInfo = await ytdl.getInfo(args[0].replace(/<(.+)>/g, '$1'));
 	const song = {
-		title: util.escapeMarkdown(songInfo.videoDetails.title),
+		title: Discord.escapeMarkdown(songInfo.videoDetails.title),
 		url: songInfo.videoDetails.video_url,
 	};
 

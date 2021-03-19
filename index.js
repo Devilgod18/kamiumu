@@ -87,7 +87,7 @@ async function execute(message, serverQueue) {
 
 	const songInfo = await ytdl.getInfo(args[1]);
 	const song = {
-		title: songInfo.videoDetails.title,
+		title: Discord.escapeMarkdown(songInfo.videoDetails.title),
 		url: songInfo.videoDetails.video_url,
 	};
 

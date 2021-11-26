@@ -129,6 +129,7 @@ async function execute(message, serverQueue) {
 				title: songInfo.title,
 				url: songInfo.video_url
 			};
+			console.log(song)
 		if (!serverQueue) {
 		
 		queue.set(message.guild.id, queueContruct);

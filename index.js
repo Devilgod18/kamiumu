@@ -93,18 +93,16 @@ async function execute(message, serverQueue) {
 		var songInfo = await ytdl.getInfo(args[1]);
 		song = {
 			title: songInfo.videoDetails.title,
-			url: songInfo.videoDetails.video_url,
+			url: songInfo.videoDetails.video_url
 			};
 	}
 	else if (validate_playlist){
 		var yt_playlist = await youtube.getPlaylist(search_string);
 		for (var i = 0; i < yt_playlist.length; i++ ){
-			var songInfoURL = await youtube.getVideo(yt_playlist[i].url);
-			const args1 = songInfoURL.content.toString().split(' ');
-			var songInfo = await ytdl.getInfo(args1[1]);
+			var songInfo = await youtube.getVideo(yt_playlist[i].url);
 			song = {
-				title: songInfo.videoDetails.title,
-				url: songInfo.videoDetails.video_url,
+				title: songInfo.title,
+				url: songInfo.video_url
 			};
 		}
 		

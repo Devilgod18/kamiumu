@@ -6,7 +6,6 @@ const {
 const ytdl = require('ytdl-core');
 const ytpl = require('ytpl');
 const token = process.env.token;
-const youtube = new YouTube(process.env.YOUTUBE_API_KEY);
 const client = new Discord.Client();
 const YouTube = require("discord-youtube-api");
 const queue = new Map();
@@ -14,6 +13,7 @@ const DabiImages = require("dabi-images");
 const DabiClient = new DabiImages.Client();
 const request = require('request');
 const cheerio = require('cheerio');
+const youtube = new YouTube(process.env.YOUTUBE_API_KEY);
 client.once('ready', () => {
 	console.log('Ready!');
 });

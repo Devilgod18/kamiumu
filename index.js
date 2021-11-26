@@ -80,8 +80,7 @@ client.on('message', async message => {
 async function execute(message, serverQueue) {
 	const args = message.content.split(' ');
 	var song = undefined;
-	const args1 = message.content.split(/ +/);
-	var search_string = args1.toString().replace(/,/g,' ');
+	var search_string = args.toString().replace(/,/g,' ');
 	let validate_playlist = ytpl.validateID(search_string);
 	const voiceChannel = message.member.voiceChannel;
 	if (!voiceChannel) return message.channel.send('��o trong k�nh');
@@ -128,6 +127,7 @@ async function execute(message, serverQueue) {
 		var yt_playlist = await youtube.getPlaylist(search_string);
 		for (var i = 0; i < yt_playlist.length; i++ ){
 			var songInfo = await youtube.getVideo(yt_playlist[i].url);
+			console.log(yt_playlist[i].url);
 			song = {
 				title: songInfo.title,
 				url: songInfo.video_url

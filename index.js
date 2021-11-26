@@ -85,6 +85,14 @@ async function execute(message, serverQueue) {
 	const voiceChannel = message.member.voiceChannel;
 	if (!voiceChannel) return message.channel.send('��o trong k�nh');
 	const permissions = voiceChannel.permissionsFor(message.client.user);
+	const queueContruct = {
+			textChannel: message.channel,
+			voiceChannel: voiceChannel,
+			connection: null,
+			songs: [],
+			volume: 5,
+			playing: true,
+		};
 	if (!permissions.has('CONNECT') || !permissions.has('SPEAK')) {
 		return message.channel.send('I need the permissions to join and speak in your voice channel!');
 	}
@@ -95,19 +103,8 @@ async function execute(message, serverQueue) {
 			url: songInfo.videoDetails.video_url
 			};
 		if (!serverQueue) {
-		const queueContruct = {
-			textChannel: message.channel,
-			voiceChannel: voiceChannel,
-			connection: null,
-			songs: [],
-			volume: 5,
-			playing: true,
-		};
-
 		queue.set(message.guild.id, queueContruct);
-
 		queueContruct.songs.push(song);
-
 		try {
 			var connection = await voiceChannel.join();
 			queueContruct.connection = connection;
@@ -133,19 +130,9 @@ async function execute(message, serverQueue) {
 				url: songInfo.video_url
 			};
 		if (!serverQueue) {
-		const queueContruct = {
-			textChannel: message.channel,
-			voiceChannel: voiceChannel,
-			connection: null,
-			songs: [],
-			volume: 5,
-			playing: true,
-		};
-
+		
 		queue.set(message.guild.id, queueContruct);
-
 		queueContruct.songs.push(song);
-
 		try {
 			var connection = await voiceChannel.join();
 			queueContruct.connection = connection;
@@ -154,13 +141,13 @@ async function execute(message, serverQueue) {
 			console.log(err);
 			queue.delete(message.guild.id);
 			return message.channel.send(err);
-		}
-	} else {
+			}
+		} else {
 		serverQueue.songs.push(song);
 		console.log(serverQueue.songs);
 		return message.channel.send(`${song.title} added to the queue!`);
-	}
 		}
+	}
 		
 		
 	}

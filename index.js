@@ -79,7 +79,6 @@ client.on('message', async message => {
 
 async function execute(message, serverQueue) {
 	const args = message.content.split(' ');
-	var song = undefined;
 	var search_string = args.toString().replace(/,/g,' ');
 	let validate_playlist = ytpl.validateID(search_string);
 	const voiceChannel = message.member.voiceChannel;
@@ -98,7 +97,7 @@ async function execute(message, serverQueue) {
 	}
 	if (!validate_playlist){
 		var songInfo = await ytdl.getInfo(args[1]);
-		song = {
+		const song = {
 			title: songInfo.videoDetails.title,
 			url: songInfo.videoDetails.video_url
 			};
@@ -125,25 +124,25 @@ async function execute(message, serverQueue) {
 		for (var i = 0; i < yt_playlist.length; i++ ){
 			
 			var songInfo = await ytdl.getInfo(yt_playlist[i].url);
-			song = {
+			const song = {
 				title: songInfo.title,
 				url: songInfo.video_url
 			};
-			console.log(song)
+			
 		if (!serverQueue) {
-		
-		queue.set(message.guild.id, queueContruct);
-		queueContruct.songs.push(song);
-		try {
-			var connection = await voiceChannel.join();
-			queueContruct.connection = connection;
-			play(message.guild, queueContruct.songs[0]);
-		} catch (err) {
-			console.log(err);
-			queue.delete(message.guild.id);
-			return message.channel.send(err);
-			}
-		} else {
+			queue.set(message.guild.id, queueContruct);
+			queueContruct.songs.push(song);
+			try {
+				var connection = await voiceChannel.join();
+				queueContruct.connection = connection;
+				play(message.guild, queueContruct.songs[0]);
+				} 
+				catch (err) {
+					console.log(err);
+					queue.delete(message.guild.id);
+					return message.channel.send(err);
+					}
+			} else {
 		serverQueue.songs.push(song);
 		console.log(serverQueue.songs);
 		return message.channel.send(`${song.title} added to the queue!`);

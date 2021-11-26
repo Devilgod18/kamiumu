@@ -126,10 +126,10 @@ async function execute(message, serverQueue) {
 			
 			var songInfo = await ytdl.getInfo(yt_playlist[i].url);
 			const song = {
-				title: songInfo.title,
-				url: songInfo.video_url
+				title: songInfo.videoDetails.title,
+				url: songInfo.videoDetails.video_url
 			};
-		console.log(yt_playlist[i].url);	
+		console.log(song.title);	
 		if (!serverQueue) {
 			queue.set(message.guild.id, queueContruct);
 			queueContruct.songs.push(song);

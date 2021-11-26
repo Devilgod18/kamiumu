@@ -80,7 +80,8 @@ client.on('message', async message => {
 async function execute(message, serverQueue) {
 	const args = message.content.split(' ');
 	var song = undefined;
-	var search_string = args.toString().replace(/,/g,' ');
+	const args1 = message.content.split(/ +/);
+	var search_string = args1.toString().replace(/,/g,' ');
 	let validate_playlist = ytpl.validateID(search_string);
 	const voiceChannel = message.member.voiceChannel;
 	if (!voiceChannel) return message.channel.send('��o trong k�nh');

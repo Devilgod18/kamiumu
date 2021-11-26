@@ -81,7 +81,6 @@ async function execute(message, serverQueue) {
 	const args = message.content.split(' ');
 	var song = undefined;
 	var search_string = args.toString().replace(/,/g,' ');
-	
 	let validate_playlist = ytpl.validateID(search_string);
 	const voiceChannel = message.member.voiceChannel;
 	if (!voiceChannel) return message.channel.send('��o trong k�nh');
@@ -132,7 +131,6 @@ async function execute(message, serverQueue) {
 				title: songInfo.title,
 				url: songInfo.video_url
 			};
-		}
 		if (!serverQueue) {
 		const queueContruct = {
 			textChannel: message.channel,
@@ -161,6 +159,9 @@ async function execute(message, serverQueue) {
 		console.log(serverQueue.songs);
 		return message.channel.send(`${song.title} added to the queue!`);
 	}
+		}
+		
+		
 	}
 	
 		

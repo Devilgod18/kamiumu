@@ -6,6 +6,7 @@ const {
 const ytdl = require('ytdl-core');
 const ytpl = require('ytpl');
 const token = process.env.token;
+const youtube = new YouTube(process.env.YOUTUBE_API_KEY);
 const client = new Discord.Client();
 const YouTube = require("discord-youtube-api");
 const queue = new Map();

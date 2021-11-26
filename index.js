@@ -128,7 +128,7 @@ async function execute(message, serverQueue) {
 				title: songInfo.title,
 				url: songInfo.video_url
 			};
-			
+		console.log(songInfo.title);	
 		if (!serverQueue) {
 			queue.set(message.guild.id, queueContruct);
 			queueContruct.songs.push(song);
@@ -142,24 +142,20 @@ async function execute(message, serverQueue) {
 					queue.delete(message.guild.id);
 					return message.channel.send(err);
 					}
-			} else {
-		serverQueue.songs.push(song);
-		console.log(serverQueue.songs);
-		return message.channel.send(`${song.title} added to the queue!`);
-		}
-	}
-		
-		
+			} 
+			else {
+				serverQueue.songs.push(song);
+				console.log(serverQueue.songs);
+				return message.channel.send(`${song.title} added to the queue!`);
+				}
+			}
 	}
 	
-		
-	
-
 }
 
 function skip(message, serverQueue) {
-	if (!message.member.voiceChannel) return message.channel.send('��o trong k�nh');
-	if (!serverQueue) return message.channel.send('��o c� skip!');
+	if (!message.member.voiceChannel) return message.channel.send('Ko trong k�nh');
+	if (!serverQueue) return message.channel.send('Ko co skip!');
 	serverQueue.connection.dispatcher.end();
 }
 function reddit(message) {

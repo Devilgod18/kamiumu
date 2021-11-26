@@ -128,7 +128,7 @@ async function execute(message, serverQueue) {
 				title: songInfo.title,
 				url: songInfo.video_url
 			};
-		console.log(songInfo.title);	
+		console.log(yt_playlist[i].url);	
 		if (!serverQueue) {
 			queue.set(message.guild.id, queueContruct);
 			queueContruct.songs.push(song);

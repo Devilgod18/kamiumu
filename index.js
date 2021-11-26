@@ -100,7 +100,7 @@ async function execute(message, serverQueue) {
 		var yt_playlist = await youtube.getPlaylist(search_string);
 		for (var i = 0; i < yt_playlist.length; i++ ){
 			var songInfoURL = await youtube.getVideo(yt_playlist[i].url);
-			var args1 = songInfoURL.split(' ');
+			const args1 = songInfoURL.toString().split(' ');
 			var songInfo = await ytdl.getInfo(args1[1]);
 			song = {
 				title: songInfo.videoDetails.title,

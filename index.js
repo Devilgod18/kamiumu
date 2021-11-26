@@ -95,21 +95,7 @@ async function execute(message, serverQueue) {
 			title: songInfo.videoDetails.title,
 			url: songInfo.videoDetails.video_url
 			};
-	}
-	else if (validate_playlist){
-		var yt_playlist = await youtube.getPlaylist(search_string);
-		for (var i = 0; i < yt_playlist.length; i++ ){
-			var songInfo = await youtube.getVideo(yt_playlist[i].url);
-			song = {
-				title: songInfo.title,
-				url: songInfo.video_url
-			};
-		}
-		
-	}
-	
-		
-	if (!serverQueue) {
+		if (!serverQueue) {
 		const queueContruct = {
 			textChannel: message.channel,
 			voiceChannel: voiceChannel,
@@ -137,6 +123,48 @@ async function execute(message, serverQueue) {
 		console.log(serverQueue.songs);
 		return message.channel.send(`${song.title} added to the queue!`);
 	}
+	}
+	else if (validate_playlist){
+		var yt_playlist = await youtube.getPlaylist(search_string);
+		for (var i = 0; i < yt_playlist.length; i++ ){
+			var songInfo = await youtube.getVideo(yt_playlist[i].url);
+			song = {
+				title: songInfo.title,
+				url: songInfo.video_url
+			};
+		}
+		if (!serverQueue) {
+		const queueContruct = {
+			textChannel: message.channel,
+			voiceChannel: voiceChannel,
+			connection: null,
+			songs: [],
+			volume: 5,
+			playing: true,
+		};
+
+		queue.set(message.guild.id, queueContruct);
+
+		queueContruct.songs.push(song);
+
+		try {
+			var connection = await voiceChannel.join();
+			queueContruct.connection = connection;
+			play(message.guild, queueContruct.songs[0]);
+		} catch (err) {
+			console.log(err);
+			queue.delete(message.guild.id);
+			return message.channel.send(err);
+		}
+	} else {
+		serverQueue.songs.push(song);
+		console.log(serverQueue.songs);
+		return message.channel.send(`${song.title} added to the queue!`);
+	}
+	}
+	
+		
+	
 
 }
 

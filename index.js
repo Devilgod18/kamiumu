@@ -4,9 +4,10 @@ const {
 	
 } = require('./config.json');
 const ytdl = require('ytdl-core');
+const ytpl = require('ytpl');
 const token = process.env.token;
 const client = new Discord.Client();
-
+const YouTube = require("discord-youtube-api");
 const queue = new Map();
 const DabiImages = require("dabi-images");
 const DabiClient = new DabiImages.Client();
@@ -77,20 +78,38 @@ client.on('message', async message => {
 
 async function execute(message, serverQueue) {
 	const args = message.content.split(' ');
-
+	var song = undefined;
+	var search_string = args.toString().replace(/,/g,' ');
+	
+	let validate_playlist = ytpl.validateID(search_string);
 	const voiceChannel = message.member.voiceChannel;
 	if (!voiceChannel) return message.channel.send('��o trong k�nh');
 	const permissions = voiceChannel.permissionsFor(message.client.user);
 	if (!permissions.has('CONNECT') || !permissions.has('SPEAK')) {
 		return message.channel.send('I need the permissions to join and speak in your voice channel!');
 	}
-
-	const songInfo = await ytdl.getInfo(args[1]);
-	const song = {
-		title: songInfo.videoDetails.title,
-		url: songInfo.videoDetails.video_url,
-	};
-
+	if (!validate_playlist){
+		var songInfo = await ytdl.getInfo(args[1]);
+		song = {
+			title: songInfo.videoDetails.title,
+			url: songInfo.videoDetails.video_url,
+			};
+	}
+	else if (validate_playlist){
+		var yt_playlist = await youtube.getPlaylist(search_string);
+		for (var i = 0; i < yt_playlist.length; i++ ){
+			var songInfoURL = await youtube.getVideo(yt_playlist[i].url);
+			args1 = songInfoURL.content.split(' ');
+			var songInfo = await ytdl.getInfo(args1[1]);
+			song = {
+				title: songInfo.videoDetails.title,
+				url: songInfo.videoDetails.video_url,
+			};
+		}
+		
+	}
+	
+		
 	if (!serverQueue) {
 		const queueContruct = {
 			textChannel: message.channel,

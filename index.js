@@ -121,8 +121,13 @@ async function execute(message, serverQueue) {
 	}
 	}
 	else if (validate_playlist){
-		var yt_playlist = await youtube.getPlaylist(search_string);
-		for (var i = 0; i < yt_playlist.length; i++ ){
+		playlist(search_string);
+	}
+	
+}
+function playlist(search_string){
+	var yt_playlist = await youtube.getPlaylist(search_string);
+	for (var i = 0; i < yt_playlist.length; i++ ){
 			
 			var songInfo = await ytdl.getInfo(yt_playlist[i].url);
 			let song = {
@@ -144,16 +149,13 @@ async function execute(message, serverQueue) {
 					return message.channel.send(err);
 					}
 			} 
-			else {
+		else {
 				serverQueue.songs.push(song);
 				console.log(serverQueue.songs);
 				return message.channel.send(`${song.title} added to the queue!`);
 				}
-		}
-	}
-	
+		}	
 }
-
 function skip(message, serverQueue) {
 	if (!message.member.voiceChannel) return message.channel.send('Ko trong k�nh');
 	if (!serverQueue) return message.channel.send('Ko co skip!');
@@ -295,7 +297,7 @@ function stop(message, serverQueue) {
 	serverQueue.connection.dispatcher.end();
 }
 
-async function play(guild, song) {
+function play(guild, song) {
 	const serverQueue = queue.get(guild.id);
 
 	if (!song) {
@@ -304,7 +306,7 @@ async function play(guild, song) {
 		return;
 	}
 
-	const dispatcher = serverQueue.connection.playStream(await ytdl(song.url,{filter: 'audioonly', quality: 'highestaudio',highWaterMark: 1<<25 },{highWaterMark: 1}))
+	const dispatcher = serverQueue.connection.playStream(ytdl(song.url,{filter: 'audioonly', quality: 'highestaudio',highWaterMark: 1<<25 },{highWaterMark: 1}))
 
 		.on('end', () => {
 

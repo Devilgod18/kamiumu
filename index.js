@@ -100,7 +100,21 @@ async function execute(message, serverQueue) {
 			volume: 5,
 			playing: true,
 		};
+<<<<<<< Updated upstream
 
+=======
+	if (!permissions.has('CONNECT') || !permissions.has('SPEAK')) {
+		return message.channel.send('I need the permissions to join and speak in your voice channel!');
+	}
+	if (!validate_playlist){
+		var songInfo = await ytdl.getInfo(args[1]);
+		let song = {
+			title: songInfo.videoDetails.title,
+			url: songInfo.videoDetails.video_url
+			};
+			console.log(args[1]);
+		if (!serverQueue) {
+>>>>>>> Stashed changes
 		queue.set(message.guild.id, queueContruct);
 
 		queueContruct.songs.push(song);
@@ -119,7 +133,43 @@ async function execute(message, serverQueue) {
 		console.log(serverQueue.songs);
 		return message.channel.send(`${song.title} added to the queue!`);
 	}
+<<<<<<< Updated upstream
 
+=======
+	}
+	else if (validate_playlist){
+		var yt_playlist = await youtube.getPlaylist(search_string);
+		for (var i = 0; i < yt_playlist.length; i++ ){
+			
+			var songInfo = await ytdl.getInfo(yt_playlist[i].url);
+			let song = {
+				title: songInfo.videoDetails.title,
+				url: songInfo.videoDetails.video_url
+			};
+		console.log(song.title);	
+		if (!serverQueue) {
+			queue.set(message.guild.id, queueContruct);
+			queueContruct.songs.push(song);
+			try {
+				var connection = await voiceChannel.join();
+				queueContruct.connection = connection;
+				play(message.guild, queueContruct.songs[0]);
+				} 
+			catch (err) {
+					console.log(err);
+					queue.delete(message.guild.id);
+					return message.channel.send(err);
+					}
+			} 
+			else {
+				serverQueue.songs.push(song);
+				console.log(serverQueue.songs);
+				return message.channel.send(`${song.title} added to the queue!`);
+				}
+		}
+	}
+	
+>>>>>>> Stashed changes
 }
 
 function skip(message, serverQueue) {
@@ -263,7 +313,7 @@ function stop(message, serverQueue) {
 	serverQueue.connection.dispatcher.end();
 }
 
-function play(guild, song) {
+async function play(guild, song) {
 	const serverQueue = queue.get(guild.id);
 
 	if (!song) {
@@ -272,7 +322,7 @@ function play(guild, song) {
 		return;
 	}
 
-	const dispatcher = serverQueue.connection.playStream(ytdl(song.url,{filter: 'audioonly', quality: 'highestaudio',highWaterMark: 1<<25 },{highWaterMark: 1}))
+	const dispatcher = serverQueue.connection.playStream(await ytdl(song.url,{filter: 'audioonly', quality: 'highestaudio',highWaterMark: 1<<25 },{highWaterMark: 1}))
 
 		.on('end', () => {
 

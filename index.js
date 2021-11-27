@@ -129,10 +129,7 @@ async function execute(message, serverQueue) {
 async function playlist(message,serverQueue){
 	let playlistID = message.content.slice(38);
     console.log(playlistID);
-	const args = message.content.split(' ');
-	var search_string = args.toString().replace(/,/g,' ');
-	var yt_playlist = await youtube.getPlaylist(search_string);
-	ytpl(playlistID, function(err, playlist){
+	ytpl(playlistID, async function(err, playlist){
 		if(err) throw err;
 		for (item in playlist.items){
 			let songInfo= playlist.items[item];

@@ -126,7 +126,7 @@ async function execute(message, serverQueue) {
 	}
 	
 }
-async function playlist(message,serverQueue, queueContruct){
+async function playlist(message, serverQueue, queueContruct){
 	let playlistID = message.content.slice(38);
     console.log(playlistID);
 	ytpl(playlistID, async function(err, playlist){
@@ -135,7 +135,7 @@ async function playlist(message,serverQueue, queueContruct){
 			let songInfo= playlist.items[item].id;
 			let song = {
 				title: playlist.items[item].title,
-				url: 'https://www.youtube.com/watch?v=' + songInfo.url
+				url: 'https://www.youtube.com/watch?v=' + songInfo
 			};
 			if (!serverQueue) {
 			queue.set(message.guild.id, queueContruct);

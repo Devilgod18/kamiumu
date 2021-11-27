@@ -97,7 +97,7 @@ async function execute(message, serverQueue) {
 	}
 	if (!validate_playlist){
 		var songInfo = await ytdl.getInfo(args[1]);
-		const song = {
+		let song = {
 			title: songInfo.videoDetails.title,
 			url: songInfo.videoDetails.video_url
 			};
@@ -125,7 +125,7 @@ async function execute(message, serverQueue) {
 		for (var i = 0; i < yt_playlist.length; i++ ){
 			
 			var songInfo = await ytdl.getInfo(yt_playlist[i].url);
-			const song = {
+			let song = {
 				title: songInfo.videoDetails.title,
 				url: songInfo.videoDetails.video_url
 			};
@@ -138,7 +138,7 @@ async function execute(message, serverQueue) {
 				queueContruct.connection = connection;
 				play(message.guild, queueContruct.songs[0]);
 				} 
-				catch (err) {
+			catch (err) {
 					console.log(err);
 					queue.delete(message.guild.id);
 					return message.channel.send(err);
@@ -149,7 +149,7 @@ async function execute(message, serverQueue) {
 				console.log(serverQueue.songs);
 				return message.channel.send(`${song.title} added to the queue!`);
 				}
-			}
+		}
 	}
 	
 }
@@ -295,7 +295,7 @@ function stop(message, serverQueue) {
 	serverQueue.connection.dispatcher.end();
 }
 
-function play(guild, song) {
+async function play(guild, song) {
 	const serverQueue = queue.get(guild.id);
 
 	if (!song) {
@@ -304,7 +304,7 @@ function play(guild, song) {
 		return;
 	}
 
-	const dispatcher = serverQueue.connection.playStream(ytdl(song.url,{filter: 'audioonly', quality: 'highestaudio',highWaterMark: 1<<25 },{highWaterMark: 1}))
+	const dispatcher = serverQueue.connection.playStream(await ytdl(song.url,{filter: 'audioonly', quality: 'highestaudio',highWaterMark: 1<<25 },{highWaterMark: 1}))
 
 		.on('end', () => {
 

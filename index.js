@@ -122,14 +122,14 @@ async function execute(message, serverQueue) {
 	}
 	}
 	else if (validate_playlist){
-		playlist(message, serverQueue, queueContruct);
+		playlist(message, serverQueue, queueContruct, search_string);
 	}
 	
 }
-async function playlist(message, serverQueue, queueContruct){
-	let playlistID = message.content.slice(38);
-    console.log(playlistID);
-	ytpl(playlistID, async function(err, playlist){
+async function playlist(message, serverQueue, queueContruct, search_string){
+	
+    console.log(search_string);
+	ytpl(search_string, async function(err, playlist){
 		if(err) throw err;
 		for (item in playlist.items){
 			let songInfo= playlist.items[item].id;

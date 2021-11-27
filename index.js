@@ -4,14 +4,16 @@ const {
 	
 } = require('./config.json');
 const ytdl = require('ytdl-core');
+const ytpl = require('ytpl');
 const token = process.env.token;
 const client = new Discord.Client();
-
+const YouTube = require("discord-youtube-api");
 const queue = new Map();
 const DabiImages = require("dabi-images");
 const DabiClient = new DabiImages.Client();
 const request = require('request');
 const cheerio = require('cheerio');
+const youtube = new YouTube(process.env.YOUTUBE_API_KEY);
 client.once('ready', () => {
 	console.log('Ready!');
 });
@@ -77,22 +79,12 @@ client.on('message', async message => {
 
 async function execute(message, serverQueue) {
 	const args = message.content.split(' ');
-
+	var search_string = args.toString().replace(/,/g,' ');
+	let validate_playlist = ytpl.validateID(search_string);
 	const voiceChannel = message.member.voiceChannel;
 	if (!voiceChannel) return message.channel.send('��o trong k�nh');
 	const permissions = voiceChannel.permissionsFor(message.client.user);
-	if (!permissions.has('CONNECT') || !permissions.has('SPEAK')) {
-		return message.channel.send('I need the permissions to join and speak in your voice channel!');
-	}
-
-	const songInfo = await ytdl.getInfo(args[1]);
-	const song = {
-		title: songInfo.videoDetails.title,
-		url: songInfo.videoDetails.video_url,
-	};
-
-	if (!serverQueue) {
-		const queueContruct = {
+	const queueContruct = {
 			textChannel: message.channel,
 			voiceChannel: voiceChannel,
 			connection: null,
@@ -100,9 +92,6 @@ async function execute(message, serverQueue) {
 			volume: 5,
 			playing: true,
 		};
-<<<<<<< Updated upstream
-
-=======
 	if (!permissions.has('CONNECT') || !permissions.has('SPEAK')) {
 		return message.channel.send('I need the permissions to join and speak in your voice channel!');
 	}
@@ -114,11 +103,8 @@ async function execute(message, serverQueue) {
 			};
 			console.log(args[1]);
 		if (!serverQueue) {
->>>>>>> Stashed changes
 		queue.set(message.guild.id, queueContruct);
-
 		queueContruct.songs.push(song);
-
 		try {
 			var connection = await voiceChannel.join();
 			queueContruct.connection = connection;
@@ -133,9 +119,6 @@ async function execute(message, serverQueue) {
 		console.log(serverQueue.songs);
 		return message.channel.send(`${song.title} added to the queue!`);
 	}
-<<<<<<< Updated upstream
-
-=======
 	}
 	else if (validate_playlist){
 		var yt_playlist = await youtube.getPlaylist(search_string);
@@ -169,12 +152,11 @@ async function execute(message, serverQueue) {
 		}
 	}
 	
->>>>>>> Stashed changes
 }
 
 function skip(message, serverQueue) {
-	if (!message.member.voiceChannel) return message.channel.send('��o trong k�nh');
-	if (!serverQueue) return message.channel.send('��o c� skip!');
+	if (!message.member.voiceChannel) return message.channel.send('Ko trong k�nh');
+	if (!serverQueue) return message.channel.send('Ko co skip!');
 	serverQueue.connection.dispatcher.end();
 }
 function reddit(message) {

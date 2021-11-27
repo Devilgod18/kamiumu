@@ -125,8 +125,8 @@ async function execute(message, serverQueue) {
 	}
 	
 }
-function playlist(search_string){
-	var yt_playlist = youtube.getPlaylist(search_string);
+async function playlist(search_string){
+	var yt_playlist = await youtube.getPlaylist(search_string);
 	for (var i = 0; i < yt_playlist.length; i++ ){
 			
 			var songInfo = await ytdl.getInfo(yt_playlist[i].url);

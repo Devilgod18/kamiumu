@@ -122,10 +122,14 @@ async function execute(message, serverQueue) {
 	}
 	}
 	else if (validate_playlist){
-		playlist(message, serverQueue);
-		let playlistID = message.content.slice(38);
-		console.log(playlistID);
-		ytpl(playlistID, async function(err, playlist){
+		playlist(message, serverQueue, queueContruct);
+	}
+	
+}
+async function playlist(message,serverQueue, queueContruct){
+	let playlistID = message.content.slice(38);
+    console.log(playlistID);
+	ytpl(playlistID, async function(err, playlist){
 		if(err) throw err;
 		for (item in playlist.items){
 			let songInfo= playlist.items[item];
@@ -152,13 +156,13 @@ async function execute(message, serverQueue) {
 				console.log(serverQueue.songs);
 				return message.channel.send(`playlist added to the queue!`);
 				}
-			}
+			
+		}
 		
-		});
-	}
+		
+	});
 	
 }
-
 function skip(message, serverQueue) {
 	if (!message.member.voiceChannel) return message.channel.send('Ko trong k�nh');
 	if (!serverQueue) return message.channel.send('Ko co skip!');

@@ -14,14 +14,7 @@ const DabiClient = new DabiImages.Client();
 const request = require('request');
 const cheerio = require('cheerio');
 const youtube = new YouTube(process.env.YOUTUBE_API_KEY);
-const queueContruct = {
-			textChannel: message.channel,
-			voiceChannel: voiceChannel,
-			connection: null,
-			songs: [],
-			volume: 5,
-			playing: true,
-		};
+
 client.once('ready', () => {
 	console.log('Ready!');
 });
@@ -92,10 +85,17 @@ async function execute(message, serverQueue) {
 	const voiceChannel = message.member.voiceChannel;
 	if (!voiceChannel) return message.channel.send('��o trong k�nh');
 	const permissions = voiceChannel.permissionsFor(message.client.user);
-	
 	if (!permissions.has('CONNECT') || !permissions.has('SPEAK')) {
 		return message.channel.send('I need the permissions to join and speak in your voice channel!');
 	}
+	const queueContruct = {
+			textChannel: message.channel,
+			voiceChannel: voiceChannel,
+			connection: null,
+			songs: [],
+			volume: 5,
+			playing: true,
+		};
 	if (!validate_playlist){
 		var songInfo = await ytdl.getInfo(args[1]);
 		let song = {
@@ -123,13 +123,9 @@ async function execute(message, serverQueue) {
 	}
 	else if (validate_playlist){
 		playlist(message, serverQueue);
-	}
-	
-}
-async function playlist(message,serverQueue){
-	let playlistID = message.content.slice(38);
-    console.log(playlistID);
-	ytpl(playlistID, async function(err, playlist){
+		let playlistID = message.content.slice(38);
+		console.log(playlistID);
+		ytpl(playlistID, async function(err, playlist){
 		if(err) throw err;
 		for (item in playlist.items){
 			let songInfo= playlist.items[item];
@@ -156,13 +152,13 @@ async function playlist(message,serverQueue){
 				console.log(serverQueue.songs);
 				return message.channel.send(`playlist added to the queue!`);
 				}
-			
-		}
+			}
 		
-		
-	});
+		});
+	}
 	
 }
+
 function skip(message, serverQueue) {
 	if (!message.member.voiceChannel) return message.channel.send('Ko trong k�nh');
 	if (!serverQueue) return message.channel.send('Ko co skip!');

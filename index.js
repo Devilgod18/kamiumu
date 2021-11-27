@@ -127,9 +127,9 @@ async function execute(message, serverQueue) {
 	
 }
 async function playlist(message, serverQueue, queueContruct, search_string){
-	
-    console.log(search_string);
-	ytpl(search_string, async function(err, playlist){
+	let playlistID = ytpl.getPlaylistID(search_string)
+    console.log(playlistID);
+	ytpl(playlistID, async function(err, playlist){
 		if(err) throw err;
 		for (item in playlist.items){
 			let songInfo= playlist.items[item].id;

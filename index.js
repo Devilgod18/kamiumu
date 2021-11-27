@@ -132,10 +132,10 @@ async function playlist(message,serverQueue, queueContruct){
 	ytpl(playlistID, async function(err, playlist){
 		if(err) throw err;
 		for (item in playlist.items){
-			let songInfo= playlist.items[item];
+			let songInfo= playlist.items[item].id;
 			let song = {
-				title: songInfo.title,
-				url: songInfo.url
+				title: playlist.items[item].title,
+				url: 'https://www.youtube.com/watch?v=' + songInfo.url
 			};
 			if (!serverQueue) {
 			queue.set(message.guild.id, queueContruct);

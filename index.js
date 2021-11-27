@@ -14,6 +14,14 @@ const DabiClient = new DabiImages.Client();
 const request = require('request');
 const cheerio = require('cheerio');
 const youtube = new YouTube(process.env.YOUTUBE_API_KEY);
+const queueContruct = {
+			textChannel: message.channel,
+			voiceChannel: voiceChannel,
+			connection: null,
+			songs: [],
+			volume: 5,
+			playing: true,
+		};
 client.once('ready', () => {
 	console.log('Ready!');
 });
@@ -84,14 +92,7 @@ async function execute(message, serverQueue) {
 	const voiceChannel = message.member.voiceChannel;
 	if (!voiceChannel) return message.channel.send('��o trong k�nh');
 	const permissions = voiceChannel.permissionsFor(message.client.user);
-	const queueContruct = {
-			textChannel: message.channel,
-			voiceChannel: voiceChannel,
-			connection: null,
-			songs: [],
-			volume: 5,
-			playing: true,
-		};
+	
 	if (!permissions.has('CONNECT') || !permissions.has('SPEAK')) {
 		return message.channel.send('I need the permissions to join and speak in your voice channel!');
 	}
@@ -121,21 +122,25 @@ async function execute(message, serverQueue) {
 	}
 	}
 	else if (validate_playlist){
-		playlist(search_string);
+		playlist(message, serverQueue);
 	}
 	
 }
-async function playlist(search_string){
+async function playlist(message,serverQueue){
+	let playlistID = message.content.slice(38);
+    console.log(playlistID);
+	const args = message.content.split(' ');
+	var search_string = args.toString().replace(/,/g,' ');
 	var yt_playlist = await youtube.getPlaylist(search_string);
-	for (var i = 0; i < yt_playlist.length; i++ ){
-			
-			var songInfo = await ytdl.getInfo(yt_playlist[i].url);
+	ytpl(playlistID, function(err, playlist){
+		if(err) throw err;
+		for (item in playlist.items){
+			let songInfo= playlist.items[item];
 			let song = {
-				title: songInfo.videoDetails.title,
-				url: songInfo.videoDetails.video_url
+				title: songInfo.title,
+				url: songInfo.url
 			};
-		console.log(song.title);	
-		if (!serverQueue) {
+			if (!serverQueue) {
 			queue.set(message.guild.id, queueContruct);
 			queueContruct.songs.push(song);
 			try {
@@ -154,7 +159,12 @@ async function playlist(search_string){
 				console.log(serverQueue.songs);
 				return message.channel.send(`playlist added to the queue!`);
 				}
-		}	
+			
+		}
+		
+		
+	});
+	
 }
 function skip(message, serverQueue) {
 	if (!message.member.voiceChannel) return message.channel.send('Ko trong k�nh');

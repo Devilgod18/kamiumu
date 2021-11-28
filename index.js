@@ -102,7 +102,7 @@ async function execute(message, serverQueue) {
 			title: songInfo.videoDetails.title,
 			url: songInfo.videoDetails.video_url
 			};
-			console.log(args[1]);
+			
 		if (!serverQueue) {
 		queue.set(message.guild.id, queueContruct);
 		queueContruct.songs.push(song);
@@ -110,6 +110,8 @@ async function execute(message, serverQueue) {
 			var connection = await voiceChannel.join();
 			queueContruct.connection = connection;
 			play(message.guild, queueContruct.songs[0]);
+			console.log(queueContruct.songs);
+			
 		} catch (err) {
 			console.log(err);
 			queue.delete(message.guild.id);
@@ -118,58 +120,75 @@ async function execute(message, serverQueue) {
 	} else {
 		serverQueue.songs.push(song);
 		console.log(serverQueue.songs);
-		return message.channel.send(`${song.title} added to the queue!`);
+		message.channel.send(`${song.title} added to the queue!`);
+		return message.channel.send(`${serverQueue.songs.length} Song in queue!`);
 	}
 	}
 	else if (validate_playlist){
-		playlist(message, serverQueue, queueContruct, search_string);
-	}
-	
-}
-async function playlist(message, serverQueue, queueContruct, search_string){
-	let playlistID = ytpl.getPlaylistID(search_string)
-    
-	ytpl(playlistID, async function(err, playlist){
-		if(err) throw err;
-		for (item in playlist.items){
+		if(!serverQueue){
+		var yt_playlist = await youtube.getPlaylist(search_string);
+		var songInfo = await youtube.getVideo(yt_playlist[0].url);
+		let song = {
+				title: songInfo.title,
+				url: songInfo.url
+				};
+		queue.set(message.guild.id, queueContruct);
+		queueContruct.songs.push(song);
+		try {
+			var connection = await voiceChannel.join();
+			queueContruct.connection = connection;
+			play(message.guild, queueContruct.songs[0]);
 			
-			let songInfo= playlist.items[item].id;
-			let song = {
-				title: playlist.items[item].title,
-				url: 'https://www.youtube.com/watch?v=' + songInfo
-			};
-			console.log(playlistID);
-			console.log(song);
-			if (!serverQueue) {
-			queue.set(message.guild.id, queueContruct);
-			queueContruct.songs.push(song);
-			try {
-				var connection = await voiceChannel.join();
-				queueContruct.connection = connection;
-				play(message.guild, queueContruct.songs[0]);
-				} 
-			catch (err) {
-					console.log(err);
-					queue.delete(message.guild.id);
-					return message.channel.send(err);
-					}
-			} 
-		else {
-				serverQueue.songs.push(song);
-				console.log(serverQueue.songs);
-				return message.channel.send(`playlist added to the queue!`);
-				}
-			
+		} catch (err) {
+			console.log(err);
+			queue.delete(message.guild.id);
+			return message.channel.send(err);
 		}
 		
+		for (var i = 1;i < yt_playlist.length;i++) {
+			var songInfo = await youtube.getVideo(yt_playlist[i].url);
+			let song = {
+				title: songInfo.title,
+				url: songInfo.url
+				};
+			queueContruct.songs.push(song);
+			
+			
+					
+		}
 		
-	});
+		console.log(queueContruct.songs);
+		console.log(queueContruct.songs.length);
+		
+		message.channel.send(`${yt_playlist.length} Song playlist added to the queue!`);
+		return message.channel.send(`${queueContruct.songs.length} Song in queue!`);
+		}
+		
+		else{
+			var yt_playlist = await youtube.getPlaylist(search_string);
+		    for (var i = 0;i < yt_playlist.length;i++) {
+			var songInfo = await youtube.getVideo(yt_playlist[i].url);
+			let song = {
+				title: songInfo.title,
+				url: songInfo.url
+				};
+			serverQueue.songs.push(song);
+			console.log(serverQueue.songs);
+			}
+			message.channel.send(`${yt_playlist.length} Song playlist added to the queue!`)
+			return message.channel.send(`${serverQueue.songs.length} Song in queue!`);
+		}
+	}
+	
 	
 }
+
+ 
 function skip(message, serverQueue) {
 	if (!message.member.voiceChannel) return message.channel.send('Ko trong k�nh');
 	if (!serverQueue) return message.channel.send('Ko co skip!');
 	serverQueue.connection.dispatcher.end();
+	message.channel.send(`${serverQueue.songs.length} Song in queue!`);
 }
 function reddit(message) {
 	DabiClient.nsfw.real.hentai().then(json => {

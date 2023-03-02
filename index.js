@@ -159,14 +159,14 @@ async function execute(message, serverQueue) {
 function skip(message, serverQueue) {
 	if (!message.member.voice.channel) return message.channel.send('Ko trong k�nh');
 	if (!serverQueue) return message.channel.send('Ko co skip!');
-	serverQueue.connection.dispatcher.end();
+	serverQueue.connection.dispatcher.destroy();
 	message.channel.send(`${serverQueue.songs.length} Song in queue!`);
 }
 
 function stop(message, serverQueue) {
 	if (!message.member.voice.channel) return message.channel.send('��o trong k�nh ko stop dc!');
 	serverQueue.songs = [];
-	serverQueue.connection.dispatcher.end();
+	serverQueue.connection.dispatcher.disconnect();
 }
 
 function play(guild, song) {
@@ -180,7 +180,7 @@ function play(guild, song) {
 
 	const dispatcher = serverQueue.connection.play(ytdl(song.url,{filter: 'audioonly', quality: 'highestaudio',highWaterMark: 1<<25 },{highWaterMark: 1}))
 
-		.on('end', () => {
+		.on('destroy', () => {
 
 			console.log('Music ended!');
 

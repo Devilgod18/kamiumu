@@ -54,7 +54,7 @@ async function execute(message, serverQueue) {
 	const args = message.content.split(' ');
 	var search_string = args.toString().replace(/,/g,' ');
 	let validate_playlist = ytpl.validateID(search_string);
-	const voiceChannel = message.member.voiceChannel;
+	const voiceChannel = message.member.voice.channel;
 	if (!voiceChannel) return message.channel.send('��o trong k�nh');
 	const permissions = voiceChannel.permissionsFor(message.client.user);
 	if (!permissions.has('CONNECT') || !permissions.has('SPEAK')) {

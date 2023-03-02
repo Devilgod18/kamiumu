@@ -6,7 +6,7 @@ const {
 const ytdl = require('ytdl-core');
 const ytpl = require('ytpl');
 const token = process.env.token;
-const client = new Discord.Client({ intents: 32767 });
+const client = new Discord.Client();
 const YouTube = require("discord-youtube-api");
 const queue = new Map();
 const DabiImages = require("dabi-images");
@@ -27,7 +27,7 @@ client.once('disconnect', () => {
 	console.log('Disconnect!');
 });
 
-client.on("messageCreate", async message => {
+client.on('message', async message => {
 	if (message.author.bot) return;
 	if (!message.content.startsWith(prefix)) return;
 

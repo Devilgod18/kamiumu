@@ -157,14 +157,14 @@ async function execute(message, serverQueue) {
 
  
 function skip(message, serverQueue) {
-	if (!message.member.voiceChannel) return message.channel.send('Ko trong k�nh');
+	if (!message.member.voice.channel) return message.channel.send('Ko trong k�nh');
 	if (!serverQueue) return message.channel.send('Ko co skip!');
 	serverQueue.connection.dispatcher.end();
 	message.channel.send(`${serverQueue.songs.length} Song in queue!`);
 }
 
 function stop(message, serverQueue) {
-	if (!message.member.voiceChannel) return message.channel.send('��o trong k�nh ko stop dc!');
+	if (!message.member.voice.channel) return message.channel.send('��o trong k�nh ko stop dc!');
 	serverQueue.songs = [];
 	serverQueue.connection.dispatcher.end();
 }
@@ -173,7 +173,7 @@ function play(guild, song) {
 	const serverQueue = queue.get(guild.id);
 
 	if (!song) {
-		serverQueue.voiceChannel.leave();
+		serverQueue.voice.channel.leave();
 		queue.delete(guild.id);
 		return;
 	}

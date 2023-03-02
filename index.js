@@ -6,10 +6,10 @@ const {
 const ytdl = require('ytdl-core');
 const ytpl = require('ytpl');
 const token = process.env.token;
-const client = new Discord.Client(intents: [
+const client = new Discord.Client({intents: [
         Intents.FLAGS.GUILDS,
         Intents.FLAGS.GUILD_MESSAGES
-    ]);
+]});
 const YouTube = require("discord-youtube-api");
 const queue = new Map();
 const DabiImages = require("dabi-images");

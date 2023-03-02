@@ -1,4 +1,4 @@
-﻿const { Client } = require('discord.js');
+﻿const Discord = require('discord.js');
 const {
 	prefix,
 	
@@ -6,7 +6,7 @@ const {
 const ytdl = require('ytdl-core');
 const ytpl = require('ytpl');
 const token = process.env.token;
-const client = new Client({ intents: 32767 });
+const client = new Discord.Client({ intents: 32767 });
 const YouTube = require("discord-youtube-api");
 const queue = new Map();
 const DabiImages = require("dabi-images");

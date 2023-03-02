@@ -166,7 +166,7 @@ function skip(message, serverQueue) {
 function stop(message, serverQueue) {
 	if (!message.member.voice.channel) return message.channel.send('��o trong k�nh ko stop dc!');
 	serverQueue.songs = [];
-	serverQueue.connection.dispatcher.leave();
+	serverQueue.connection.dispatcher.end();
 }
 
 function play(guild, song) {

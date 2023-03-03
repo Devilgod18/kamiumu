@@ -2,10 +2,11 @@
   "name": "kami",
   "version": "1.0.0",
   "description": "",
-   "engines": {
+  
+  "main": "index.js",
+  "engines": {
     "node": "14.21.3"
 },
-  "main": "index.js",
   "dependencies": {
     "@discordjs/uws": "^10.149.0",
     "cheerio": "^1.0.0-rc.3",
@@ -15,7 +16,7 @@
     "discord.js-v11": "^12.1.1",
     "ffmpeg": "0.0.4",
     "ffmpeg-static": "^3.0.0",
-    "node": "^14.21.3",
+    
     "node-fetch": "^2.6.1",
     "node-pre-gyp": "^0.14.0",
     "opusscript": "0.0.7",

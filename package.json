@@ -2,6 +2,9 @@
   "name": "kami",
   "version": "1.0.0",
   "description": "",
+   "engines": {
+    "node": "14.21.3"
+},
   "main": "index.js",
   "dependencies": {
     "@discordjs/uws": "^10.149.0",
@@ -20,9 +23,7 @@
     "ytdl-core": "^4.11.2",
     "ytpl": "^2.2.3"
   },
-  "engines": {
-    "node": "14.21.3"
-},
+ 
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },

@@ -76,7 +76,8 @@ async function execute(message, serverQueue) {
       const trackInfo = await scdl.getInfo(args[1]);
       let song = {
 		type: 'soundcloud',
-		url: trackInfo.permalink_url
+		title: trackInfo.title,
+		url: trackInfo.url
     
       };
 	  if (!serverQueue) {
@@ -218,7 +219,7 @@ async function play(guild, song) {
       ? await ytdl(song.url, {filter: 'audioonly', quality: 'highestaudio',highWaterMark: 1<<25 },{highWaterMark: 1})
       : await soundcloud.download(song.url, process.env.SOUNDCLOUD_CLIENT_ID);
 
-	const dispatcher = connection.play(await stream, { type: 'opus' })
+	const dispatcher = serverQueue.connection.play(await stream, { type: 'opus' })
 
 		.on("finish", () => {
 

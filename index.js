@@ -73,7 +73,7 @@ async function execute(message, serverQueue) {
 	};
 	
     if (args[1].startsWith('https://soundcloud.com/')) {
-      const trackInfo = await scdl.download(args[1]);
+      const trackInfo = await scdl.getInfo(args[0]);
       let song = {
 		type: 'soundcloud',
 		title: trackInfo.title,

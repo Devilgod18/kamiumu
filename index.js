@@ -76,7 +76,7 @@ async function execute(message, serverQueue) {
       const trackInfo = await scdl.getInfo(args[1]);
       let song = {
 		type: 'soundcloud',
-		url: trackInfo.permalink_url,
+		url: trackInfo.permalink_url
     
       };
 	  if (!serverQueue) {

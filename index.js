@@ -218,7 +218,7 @@ async function play(guild, song) {
 	const streamOptions = { highWaterMark: 1 << 25 };
 	const stream = song.type === 'youtube'
       ? await ytdl(song.url, {filter: 'audioonly', quality: 'highestaudio' })
-      : await soundcloud.download(song.url, process.env.SOUNDCLOUD_CLIENT_ID);
+      : await soundcloud.download(song.url, clientID);
 
 	const dispatcher = serverQueue.connection.play(await stream, streamOptions)
 

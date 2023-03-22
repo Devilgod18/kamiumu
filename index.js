@@ -75,8 +75,8 @@ async function execute(message, serverQueue) {
     if (args[1].startsWith('https://soundcloud.com/')) {
       const trackInfo = await scdl.getInfo(args[1]);
       song = {
-        title: trackInfo.title,
-        url: trackInfo.permalink_url
+		url: trackInfo.permalink_url,
+        title: trackInfo.clientID
       };
 	  if (!serverQueue) {
 		queue.set(message.guild.id, queueContruct);

@@ -3,6 +3,7 @@ const {
 	prefix,
 	
 } = require('./config.json');
+const scdl = require('soundcloud-downloader').default;
 const ytdl = require('ytdl-core');
 const ytpl = require('ytpl');
 const token = process.env.token;
@@ -60,17 +61,48 @@ async function execute(message, serverQueue) {
 	if (!permissions.has('CONNECT') || !permissions.has('SPEAK')) {
 		return message.channel.send('I need the permissions to join and speak in your voice channel!');
 	}
+	let songInfo;
+    let song;
 	const queueContruct = {
-			textChannel: message.channel,
-			voiceChannel: voiceChannel,
-			connection: null,
-			songs: [],
-			volume: 5,
-			playing: true,
-		};
-	if (!validate_playlist){
-		var songInfo = await ytdl.getInfo(args[1]);
-		let song = {
+		textChannel: message.channel,
+		voiceChannel: voiceChannel,
+		connection: null,
+		songs: [],
+		volume: 5,
+		playing: true,
+	};
+	
+    if (args[1].startsWith('https://soundcloud.com/')) {
+      const trackInfo = await scdl.getInfo(args[1]);
+      song = {
+        title: trackInfo.title,
+        url: trackInfo.permalink_url
+      };
+	  if (!serverQueue) {
+		queue.set(message.guild.id, queueContruct);
+		queueContruct.songs.push(song);
+		try {
+			var connection = await voiceChannel.join();
+			queueContruct.connection = connection;
+			play(message.guild, queueContruct.songs[0]);
+			console.log(queueContruct.songs);
+			
+		} catch (err) {
+			console.log(err);
+			queue.delete(message.guild.id);
+			return message.channel.send(err);
+		}
+	} else {
+		serverQueue.songs.push(song);
+		console.log(serverQueue.songs);
+		message.channel.send(`${song.title} added to the queue!`);
+		return message.channel.send(`${serverQueue.songs.length} Song in queue!`);
+	}
+	
+	}
+	else if (!validate_playlist){
+		songInfo = await ytdl.getInfo(args[1]);
+		song = {
 			title: songInfo.videoDetails.title,
 			url: songInfo.videoDetails.video_url
 			};
@@ -99,8 +131,8 @@ async function execute(message, serverQueue) {
 	else if (validate_playlist){
 		if(!serverQueue){
 		var yt_playlist = await youtube.getPlaylist(search_string);
-		var songInfo = await youtube.getVideo(yt_playlist[0].url);
-		let song = {
+		songInfo = await youtube.getVideo(yt_playlist[0].url);
+		song = {
 				title: songInfo.title,
 				url: songInfo.url
 				};
@@ -118,8 +150,8 @@ async function execute(message, serverQueue) {
 		}
 		
 		for (var i = 1;i < yt_playlist.length;i++) {
-			var songInfo = await youtube.getVideo(yt_playlist[i].url);
-			let song = {
+			songInfo = await youtube.getVideo(yt_playlist[i].url);
+			song = {
 				title: songInfo.title,
 				url: songInfo.url
 				};
@@ -139,8 +171,8 @@ async function execute(message, serverQueue) {
 		else{
 			var yt_playlist = await youtube.getPlaylist(search_string);
 		    for (var i = 0;i < yt_playlist.length;i++) {
-			var songInfo = await youtube.getVideo(yt_playlist[i].url);
-			let song = {
+			songInfo = await youtube.getVideo(yt_playlist[i].url);
+			song = {
 				title: songInfo.title,
 				url: songInfo.url
 				};

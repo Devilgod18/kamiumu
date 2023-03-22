@@ -73,7 +73,7 @@ async function execute(message, serverQueue) {
 	};
 	
     if (args[1].startsWith('https://soundcloud.com/')) {
-      const trackInfo = await scdl.getInfo(args[0]);
+      const trackInfo = await scdl.getInfo(args[1], clientID);
       let song = {
 		type: 'soundcloud',
 		title: trackInfo.title,
@@ -215,12 +215,12 @@ async function play(guild, song) {
 		queue.delete(guild.id);
 		return;
 	}
-	const streamOptions = { highWaterMark: 1 << 25, type: 'opus' };
+	const streamOptions = { highWaterMark: 1 << 25 };
 	const stream = song.type === 'youtube'
-      ? await ytdl(song.url, {filter: 'audioonly', quality: 'highestaudio',highWaterMark: 1<<25 })
-      : await soundcloud.download(song.url, process.env.SOUNDCLOUD_CLIENT_ID,streamOptions);
+      ? await ytdl(song.url, {filter: 'audioonly', quality: 'highestaudio' })
+      : await soundcloud.download(song.url, process.env.SOUNDCLOUD_CLIENT_ID);
 
-	const dispatcher = serverQueue.connection.play(await stream, { type: 'opus' })
+	const dispatcher = serverQueue.connection.play(await stream, streamOptions)
 
 		.on("finish", () => {
 

@@ -3,7 +3,7 @@ const {
 	prefix,
 	
 } = require('./config.json');
-const scdl = require('soundcloud-downloader').default;
+const scdl = require('soundcloud-downloader');
 const ytdl = require('ytdl-core');
 const ytpl = require('ytpl');
 const token = process.env.token;
@@ -73,7 +73,7 @@ async function execute(message, serverQueue) {
 	};
 	
     if (args[1].startsWith('https://soundcloud.com/')) {
-      const trackInfo = await scdl.download(args[1]);
+      const trackInfo = await scdl.getInfo(args[1]);
       song = {
         title: trackInfo.title,
         url: trackInfo.permalink_url
@@ -201,7 +201,7 @@ function stop(message, serverQueue) {
 	serverQueue.connection.dispatcher.end();
 }
 
-function play(guild, song) {
+async function play(guild, song) {
 	const serverQueue = queue.get(guild.id);
 
 	if (!song) {
@@ -210,7 +210,7 @@ function play(guild, song) {
 		return;
 	}
 
-	const dispatcher = serverQueue.connection.play(ytdl(song.url,{filter: 'audioonly', quality: 'highestaudio',highWaterMark: 1<<25 },{highWaterMark: 1}))
+	const dispatcher = serverQueue.connection.play(await getStream(url), { type: 'opus' })
 
 		.on("finish", () => {
 
@@ -225,5 +225,14 @@ function play(guild, song) {
 		});
 	dispatcher.setVolumeLogarithmic(serverQueue.volume / 5);
 }
-
+async function getStream(url) {
+	if (ytdl.validateURL(url)) {
+	  return await ytdl(song.url,{filter: 'audioonly', quality: 'highestaudio',highWaterMark: 1<<25 },{highWaterMark: 1});
+	} else if (scdl.isValidUrl(url)) {
+	  const trackInfo = await scdl.getInfo(url);
+	  return scdl.downloadFormat(trackInfo.permalink_url, scdl.FORMATS.OPUS);
+	} else {
+	  throw new Error('Invalid URL');
+	}
+  }
 client.login(token);

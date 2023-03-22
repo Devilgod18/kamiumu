@@ -82,7 +82,7 @@ async function execute(message, serverQueue) {
 		queue.set(message.guild.id, queueContruct);
 		queueContruct.songs.push(song);
 		try {
-			var connection = await voiceChannel.join();
+			var connection = await voiceChannel.join({ timeout: 30000 });
 			queueContruct.connection = connection;
 			play(message.guild, queueContruct.songs[0]);
 			console.log(queueContruct.songs);
@@ -111,7 +111,7 @@ async function execute(message, serverQueue) {
 		queue.set(message.guild.id, queueContruct);
 		queueContruct.songs.push(song);
 		try {
-			var connection = await voiceChannel.join();
+			var connection = await voiceChannel.join({ timeout: 30000 });
 			queueContruct.connection = connection;
 			play(message.guild, queueContruct.songs[0]);
 			console.log(queueContruct.songs);
@@ -139,7 +139,7 @@ async function execute(message, serverQueue) {
 		queue.set(message.guild.id, queueContruct);
 		queueContruct.songs.push(song);
 		try {
-			var connection = await voiceChannel.join();
+			var connection = await voiceChannel.join({ timeout: 30000 });
 			queueContruct.connection = connection;
 			play(message.guild, queueContruct.songs[0]);
 			

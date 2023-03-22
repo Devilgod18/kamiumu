@@ -61,8 +61,7 @@ async function execute(message, serverQueue) {
 	if (!permissions.has('CONNECT') || !permissions.has('SPEAK')) {
 		return message.channel.send('I need the permissions to join and speak in your voice channel!');
 	}
-	let songInfo;
-    let song;
+	
 	const queueContruct = {
 		textChannel: message.channel,
 		voiceChannel: voiceChannel,
@@ -74,7 +73,7 @@ async function execute(message, serverQueue) {
 	
     if (args[1].startsWith('https://soundcloud.com/')) {
       const trackInfo = await scdl.getInfo(args[1]);
-      song = {
+      let song = {
 		url: trackInfo.permalink_url,
         title: trackInfo.clientID
       };
@@ -101,8 +100,8 @@ async function execute(message, serverQueue) {
 	
 	}
 	else if (!validate_playlist){
-		songInfo = await ytdl.getInfo(args[1]);
-		song = {
+		var songInfo = await ytdl.getInfo(args[1]);
+		let song = {
 			title: songInfo.videoDetails.title,
 			url: songInfo.videoDetails.video_url
 			};
@@ -131,8 +130,8 @@ async function execute(message, serverQueue) {
 	else if (validate_playlist){
 		if(!serverQueue){
 		var yt_playlist = await youtube.getPlaylist(search_string);
-		songInfo = await youtube.getVideo(yt_playlist[0].url);
-		song = {
+		var songInfo = await youtube.getVideo(yt_playlist[0].url);
+		let song = {
 				title: songInfo.title,
 				url: songInfo.url
 				};
@@ -150,8 +149,8 @@ async function execute(message, serverQueue) {
 		}
 		
 		for (var i = 1;i < yt_playlist.length;i++) {
-			songInfo = await youtube.getVideo(yt_playlist[i].url);
-			song = {
+			var songInfo = await youtube.getVideo(yt_playlist[i].url);
+			let song = {
 				title: songInfo.title,
 				url: songInfo.url
 				};
@@ -171,8 +170,8 @@ async function execute(message, serverQueue) {
 		else{
 			var yt_playlist = await youtube.getPlaylist(search_string);
 		    for (var i = 0;i < yt_playlist.length;i++) {
-			songInfo = await youtube.getVideo(yt_playlist[i].url);
-			song = {
+			var songInfo = await youtube.getVideo(yt_playlist[i].url);
+			let song = {
 				title: songInfo.title,
 				url: songInfo.url
 				};
@@ -200,39 +199,67 @@ function stop(message, serverQueue) {
 	serverQueue.songs = [];
 	serverQueue.connection.dispatcher.end();
 }
-
-async function play(guild, song) {
-	const serverQueue = queue.get(guild.id);
-
-	if (!song) {
-		serverQueue.voiceChannel.leave();
-		queue.delete(guild.id);
-		return;
-	}
-
-	const dispatcher = serverQueue.connection.play(await getStream(url), { type: 'opus' })
-
-		.on("finish", () => {
-
-			console.log('Music ended!');
-
-			serverQueue.songs.shift();
-			play(guild, serverQueue.songs[0]);
-			highWaterMark: 1<<25
-		})
-		.on('error', error => {
-			console.error(error);
+async function play(connection, url) {
+	try {
+	  // Check if the URL is from SoundCloud or YouTube
+	  if (url.includes('soundcloud.com')) {
+		// Download the track from SoundCloud
+		const trackInfo = await soundcloud.getTrackInfo(url);
+		const stream = await soundcloud.downloadTrack(trackInfo.url, trackInfo.permalink);
+  
+		// Play the track in the voice channel
+		const dispatcher = connection.play(stream);
+		dispatcher.on('finish', () => {
+		  console.log('Finished playing SoundCloud track');
 		});
-	dispatcher.setVolumeLogarithmic(serverQueue.volume / 5);
-}
-async function getStream(url) {
-	if (ytdl.validateURL(url)) {
-	  return await ytdl(song.url,{filter: 'audioonly', quality: 'highestaudio',highWaterMark: 1<<25 },{highWaterMark: 1});
-	} else if (scdl.isValidUrl(url)) {
-	  const trackInfo = await scdl.getInfo(url);
-	  return scdl.downloadFormat(trackInfo.permalink_url, scdl.FORMATS.OPUS);
-	} else {
-	  throw new Error('Invalid URL');
+	  } else if (url.includes('youtube.com') || url.includes('youtu.be')) {
+		// Stream the video from YouTube
+		const stream = await ytdl(url, {filter: 'audioonly', quality: 'highestaudio',highWaterMark: 1<<25 },{highWaterMark: 1});
+  
+		// Play the video in the voice channel
+		const dispatcher = connection.play(stream);
+		dispatcher.on('finish', () => {
+		  console.log('Finished playing YouTube video');
+		});
+	  } else {
+		console.log('Invalid URL');
+	  }
+	} catch (error) {
+	  console.log(error);
 	}
   }
+// async function play(guild, song) {
+// 	const serverQueue = queue.get(guild.id);
+
+// 	if (!song) {
+// 		serverQueue.voiceChannel.leave();
+// 		queue.delete(guild.id);
+// 		return;
+// 	}
+
+// 	const dispatcher = serverQueue.connection.play(await getStream(url), { type: 'opus' })
+
+// 		.on("finish", () => {
+
+// 			console.log('Music ended!');
+
+// 			serverQueue.songs.shift();
+// 			play(guild, serverQueue.songs[0]);
+// 			highWaterMark: 1<<25
+// 		})
+// 		.on('error', error => {
+// 			console.error(error);
+// 		});
+// 	dispatcher.setVolumeLogarithmic(serverQueue.volume / 5);
+// }
+// async function getStream(url) {
+// 	if (ytdl.validateURL(url)) {
+// 	  return await ytdl(song.url,{filter: 'audioonly', quality: 'highestaudio',highWaterMark: 1<<25 },{highWaterMark: 1});
+// 	} else if (scdl.isValidUrl(url)) {
+// 	  const trackInfo = await scdl.getInfo(url);
+// 	  return scdl.downloadFormat(trackInfo.permalink_url, scdl.FORMATS.OPUS);
+// 	} else {
+// 	  throw new Error('Invalid URL');
+// 	}
+//   }
 client.login(token);

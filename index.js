@@ -3,7 +3,7 @@ const {
 	prefix,
 	
 } = require('./config.json');
-const scdl = require('soundcloud-downloader');
+const scdl = require('soundcloud-downloader').default;
 const ytdl = require('ytdl-core');
 const ytpl = require('ytpl');
 const token = process.env.token;
@@ -77,7 +77,7 @@ async function execute(message, serverQueue) {
       let song = {
 		type: 'soundcloud',
 		url: trackInfo.permalink_url,
-        title: trackInfo.clientID
+    
       };
 	  if (!serverQueue) {
 		queue.set(message.guild.id, queueContruct);
@@ -214,8 +214,11 @@ async function play(guild, song) {
 		queue.delete(guild.id);
 		return;
 	}
+	const stream = song.type === 'youtube'
+      ? await ytdl(song.url, {filter: 'audioonly', quality: 'highestaudio',highWaterMark: 1<<25 },{highWaterMark: 1})
+      : await soundcloud.download(song.url, process.env.SOUNDCLOUD_CLIENT_ID);
 
-	const dispatcher = serverQueue.connection.play(await getStream(song), { type: 'opus' })
+	const dispatcher = connection.play(await stream, { type: 'opus' })
 
 		.on("finish", () => {
 
@@ -230,14 +233,14 @@ async function play(guild, song) {
 		});
 	dispatcher.setVolumeLogarithmic(serverQueue.volume / 5);
 }
-async function getStream(song) {
-	if (song.type==='youtube') {
-	  return await ytdl(song.url,{filter: 'audioonly', quality: 'highestaudio',highWaterMark: 1<<25 },{highWaterMark: 1});
-	} else if (song.type==='soundcloud') {
-	  const trackInfo = await scdl.getInfo(url);
-	  return scdl.download(song.url, clientID);
-	} else {
-	  throw new Error('Invalid URL');
-	}
-  }
+// async function getStream(song) {
+// 	if (song.type==='youtube') {
+// 	  return await ytdl(song.url,{filter: 'audioonly', quality: 'highestaudio',highWaterMark: 1<<25 },{highWaterMark: 1});
+// 	} else if (song.type==='soundcloud') {
+// 	  const trackInfo = await scdl.getInfo(url);
+// 	  return scdl.download(song.url, clientID);
+// 	} else {
+// 	  throw new Error('Invalid URL');
+// 	}
+//   }
 client.login(token);

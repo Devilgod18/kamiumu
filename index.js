@@ -7,6 +7,7 @@ const scdl = require('soundcloud-downloader');
 const ytdl = require('ytdl-core');
 const ytpl = require('ytpl');
 const token = process.env.token;
+const clientID= process.env.SOUNDCLOUD_CLIENT_ID;
 const client = new Discord.Client();
 const YouTube = require("discord-youtube-api");
 const queue = new Map();
@@ -74,6 +75,7 @@ async function execute(message, serverQueue) {
     if (args[1].startsWith('https://soundcloud.com/')) {
       const trackInfo = await scdl.getInfo(args[1]);
       let song = {
+		type: 'soundcloud',
 		url: trackInfo.permalink_url,
         title: trackInfo.clientID
       };
@@ -102,6 +104,7 @@ async function execute(message, serverQueue) {
 	else if (!validate_playlist){
 		var songInfo = await ytdl.getInfo(args[1]);
 		let song = {
+			type: 'youtube',
 			title: songInfo.videoDetails.title,
 			url: songInfo.videoDetails.video_url
 			};
@@ -132,6 +135,7 @@ async function execute(message, serverQueue) {
 		var yt_playlist = await youtube.getPlaylist(search_string);
 		var songInfo = await youtube.getVideo(yt_playlist[0].url);
 		let song = {
+			type: 'youtube',
 				title: songInfo.title,
 				url: songInfo.url
 				};
@@ -151,6 +155,7 @@ async function execute(message, serverQueue) {
 		for (var i = 1;i < yt_playlist.length;i++) {
 			var songInfo = await youtube.getVideo(yt_playlist[i].url);
 			let song = {
+				type: 'youtube',
 				title: songInfo.title,
 				url: songInfo.url
 				};
@@ -172,6 +177,7 @@ async function execute(message, serverQueue) {
 		    for (var i = 0;i < yt_playlist.length;i++) {
 			var songInfo = await youtube.getVideo(yt_playlist[i].url);
 			let song = {
+				type: 'youtube',
 				title: songInfo.title,
 				url: songInfo.url
 				};
@@ -199,67 +205,39 @@ function stop(message, serverQueue) {
 	serverQueue.songs = [];
 	serverQueue.connection.dispatcher.end();
 }
-async function play(connection, url) {
-	try {
-	  // Check if the URL is from SoundCloud or YouTube
-	  if (url.includes('soundcloud.com')) {
-		// Download the track from SoundCloud
-		const trackInfo = await soundcloud.getTrackInfo(url);
-		const stream = await soundcloud.downloadTrack(trackInfo.url, trackInfo.permalink);
-  
-		// Play the track in the voice channel
-		const dispatcher = connection.play(stream);
-		dispatcher.on('finish', () => {
-		  console.log('Finished playing SoundCloud track');
+
+async function play(guild, song) {
+	const serverQueue = queue.get(guild.id);
+
+	if (!song) {
+		serverQueue.voiceChannel.leave();
+		queue.delete(guild.id);
+		return;
+	}
+
+	const dispatcher = serverQueue.connection.play(await getStream(song), { type: 'opus' })
+
+		.on("finish", () => {
+
+			console.log('Music ended!');
+
+			serverQueue.songs.shift();
+			play(guild, serverQueue.songs[0]);
+			highWaterMark: 1<<25
+		})
+		.on('error', error => {
+			console.error(error);
 		});
-	  } else if (url.includes('youtube.com') || url.includes('youtu.be')) {
-		// Stream the video from YouTube
-		const stream = await ytdl(url, {filter: 'audioonly', quality: 'highestaudio',highWaterMark: 1<<25 },{highWaterMark: 1});
-  
-		// Play the video in the voice channel
-		const dispatcher = connection.play(stream);
-		dispatcher.on('finish', () => {
-		  console.log('Finished playing YouTube video');
-		});
-	  } else {
-		console.log('Invalid URL');
-	  }
-	} catch (error) {
-	  console.log(error);
+	dispatcher.setVolumeLogarithmic(serverQueue.volume / 5);
+}
+async function getStream(song) {
+	if (song.type==='youtube') {
+	  return await ytdl(song.url,{filter: 'audioonly', quality: 'highestaudio',highWaterMark: 1<<25 },{highWaterMark: 1});
+	} else if (song.type==='soundcloud') {
+	  const trackInfo = await scdl.getInfo(url);
+	  return scdl.download(song.url, clientID);
+	} else {
+	  throw new Error('Invalid URL');
 	}
   }
-// async function play(guild, song) {
-// 	const serverQueue = queue.get(guild.id);
-
-// 	if (!song) {
-// 		serverQueue.voiceChannel.leave();
-// 		queue.delete(guild.id);
-// 		return;
-// 	}
-
-// 	const dispatcher = serverQueue.connection.play(await getStream(url), { type: 'opus' })
-
-// 		.on("finish", () => {
-
-// 			console.log('Music ended!');
-
-// 			serverQueue.songs.shift();
-// 			play(guild, serverQueue.songs[0]);
-// 			highWaterMark: 1<<25
-// 		})
-// 		.on('error', error => {
-// 			console.error(error);
-// 		});
-// 	dispatcher.setVolumeLogarithmic(serverQueue.volume / 5);
-// }
-// async function getStream(url) {
-// 	if (ytdl.validateURL(url)) {
-// 	  return await ytdl(song.url,{filter: 'audioonly', quality: 'highestaudio',highWaterMark: 1<<25 },{highWaterMark: 1});
-// 	} else if (scdl.isValidUrl(url)) {
-// 	  const trackInfo = await scdl.getInfo(url);
-// 	  return scdl.downloadFormat(trackInfo.permalink_url, scdl.FORMATS.OPUS);
-// 	} else {
-// 	  throw new Error('Invalid URL');
-// 	}
-//   }
 client.login(token);

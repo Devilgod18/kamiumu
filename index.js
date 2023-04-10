@@ -192,8 +192,12 @@ function skip(message, serverQueue) {
 	if (serverQueue.songs[0].source === 'youtube') {
 		serverQueue.connection.dispatcher.end();
 	  } else if (serverQueue.songs[0].source === 'soundcloud') {
-		serverQueue.dispatcher.end();
-	  }
+		if (serverQueue.dispatcher) {
+			serverQueue.dispatcher.end();
+		  } else {
+			console.error('Dispatcher undefined for soundcloud song.');
+		  }
+		}
 	message.channel.send(`${serverQueue.songs.length} Song in queue!`);
 }
 
@@ -204,9 +208,12 @@ function stop(message, serverQueue) {
 		serverQueue.connection.dispatcher.end();
 	  } else if (serverQueue.songs[0].source === 'soundcloud') {
 		serverQueue.songs = [];
-		serverQueue.dispatcher.end();
-	  }
-	  
+		if (serverQueue.dispatcher) {
+			serverQueue.dispatcher.end();
+		  } else {
+			console.error('Dispatcher undefined for soundcloud song.');
+		  }
+		}
 	  message.channel.send('Queue has been stopped!');
 }
 

@@ -91,6 +91,7 @@ async function execute(message, serverQueue) {
 			  }
 			} else {
 			  serverQueue.songs.push(song);
+			  console.log(serverQueue.songs);
 			  message.channel.send(`${song.title} added to the queue!`);
 			  return message.channel.send(`${serverQueue.songs.length} song(s) in queue!`);
 			}
@@ -193,7 +194,7 @@ function skip(message, serverQueue) {
 		serverQueue.connection.dispatcher.end();
 	  } else if (serverQueue.songs[0].source === 'soundcloud') {
 		if (serverQueue.dispatcher) {
-			serverQueue.dispatcher.end();
+			serverQueue.connection.dispatcher.end();
 		  } else {
 			console.error('Dispatcher undefined for soundcloud song.');
 		  }
@@ -209,7 +210,7 @@ function stop(message, serverQueue) {
 	  } else if (serverQueue.songs[0].source === 'soundcloud') {
 		serverQueue.songs = [];
 		if (serverQueue.dispatcher) {
-			serverQueue.dispatcher.end();
+			serverQueue.connection.dispatcher.end();
 		  } else {
 			console.error('Dispatcher undefined for soundcloud song.');
 		  }

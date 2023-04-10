@@ -201,7 +201,7 @@ function skip(message, serverQueue) {
     serverQueue.dispatcher.destroy();
 	serverQueue.songs.shift();
 	
-	const nextSong = serverQueue.songs[0];
+	const nextSong = serverQueue.songs[1];
         if (nextSong && nextSong.source === 'youtube') {
           // The next song is a YouTube song, start playing it
           play(guild, nextSong);
@@ -249,26 +249,27 @@ function play(guild, song) {
 			console.error(error);
 		  });
 	  } else if (song.source === 'soundcloud') {
-		dispatcher = serverQueue.connection.play(song.url, { highWaterMark: 1 << 25 })
-      .on('finish', () => {
-        console.log('Music ended!');
-        if (serverQueue.loop) {
-          serverQueue.songs.push(serverQueue.songs.shift());
-        } else {
-          serverQueue.songs.shift();
-        }
-        const nextSong = serverQueue.songs[0];
-        if (nextSong && nextSong.source === 'youtube') {
-          // The next song is a YouTube song, start playing it
-          play(guild, nextSong);
-        } else {
-          // The next song is another SoundCloud song, start playing it
+		const nextSong = serverQueue.songs[1];
+    if (nextSong && nextSong.source === 'youtube') {
+      // SoundCloud song ended, play next YouTube song in queue
+      serverQueue.songs.shift();
+      play(guild, serverQueue.songs[0]);
+    } else {
+      // Play next SoundCloud song in queue
+      dispatcher = serverQueue.connection
+        .play(song.url, { highWaterMark: 1 << 25 })
+        .on('finish', () => {
+          console.log('Music ended!');
+          if (serverQueue.loop) {
+            serverQueue.songs.push(serverQueue.songs.shift());
+          } else {
+            serverQueue.songs.shift();
+          }
           play(guild, serverQueue.songs[0]);
-        }
-      })
-      .on('error', error => {
-        console.error(error);
-      });
+        })
+        .on('error', error => {
+          console.error(error);
+        });
 	  }
 	
 

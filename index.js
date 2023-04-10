@@ -193,7 +193,15 @@ async function execute(message, serverQueue) {
 function skip(message, serverQueue) {
 	if (!message.member.voice.channel) return message.channel.send('Ko trong k�nh');
 	if (!serverQueue) return message.channel.send('Ko co skip!');
-	serverQueue.connection.dispatcher.end();
+	if (!serverQueue.dispatcher) return message.channel.send('There is no song currently playing!');
+
+  if (serverQueue.songs[0].source === 'youtube') {
+    serverQueue.connection.dispatcher.end();
+  } else if (serverQueue.songs[0].source === 'soundcloud'&&serverQueue.dispatcher) {
+    serverQueue.dispatcher.destroy();
+	serverQueue.songs.shift();
+	play(message.guild, serverQueue.songs[0]);
+  }
 	message.channel.send(`${serverQueue.songs.length} Song in queue!`);
 }
 
@@ -213,34 +221,37 @@ function play(guild, song) {
 	}
 	let dispatcher;
 	
-  if (song.source === 'youtube') {
-    dispatcher = serverQueue.connection
-      .play(ytdl(song.url, { filter: 'audioonly', quality: 'highestaudio', highWaterMark: 1 << 25 }))
+	if (song.source === 'youtube') {
+		dispatcher = serverQueue.connection
+		  .play(ytdl(song.url, { filter: 'audioonly', quality: 'highestaudio', highWaterMark: 1 << 25 }))
+		  .on('finish', () => {
+			console.log('Music ended!');
+			if (serverQueue.loop) {
+			  serverQueue.songs.push(serverQueue.songs.shift());
+			} else {
+			  serverQueue.songs.shift();
+			}
+			play(guild, serverQueue.songs[0]);
+		  })
+		  .on('error', error => {
+			console.error(error);
+		  });
+	  } else if (song.source === 'soundcloud') {
+		dispatcher = serverQueue.connection.play(song.url, { highWaterMark: 1 << 25 })
       .on('finish', () => {
         console.log('Music ended!');
-        serverQueue.songs.shift();
-        if (serverQueue.songs.length) {
-			play(guild, serverQueue.songs[0]);
-		  }
+        if (serverQueue.loop) {
+          serverQueue.songs.push(serverQueue.songs.shift());
+        } else {
+          serverQueue.songs.shift();
+        }
+        play(guild, serverQueue.songs[0]);
       })
       .on('error', error => {
         console.error(error);
       });
-  } else if (song.source === 'soundcloud') {
-    dispatcher = serverQueue.connection
-      .play(song.url, { highWaterMark: 1 << 25 })
-      .on('finish', () => {
-        console.log('Music ended!');
-        serverQueue.songs.shift();
-        if (serverQueue.songs.length) {
-			play(guild, serverQueue.songs[0]);
-		  }
-      })
-      .on('error', error => {
-        console.error(error);
-      });
-	  
-  }
+	  }
+	
 
   if (dispatcher) {
     serverQueue.dispatcher = dispatcher;

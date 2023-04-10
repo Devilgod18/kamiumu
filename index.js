@@ -189,14 +189,23 @@ async function execute(message, serverQueue) {
 function skip(message, serverQueue) {
 	if (!message.member.voice.channel) return message.channel.send('Ko trong k�nh');
 	if (!serverQueue) return message.channel.send('Ko co skip!');
-	serverQueue.connection.dispatcher.end();
+	if (serverQueue.songs[0].source === 'youtube') {
+		serverQueue.connection.dispatcher.end();
+	  } else if (serverQueue.songs[0].source === 'soundcloud') {
+		serverQueue.dispatcher.end();
+	  }
 	message.channel.send(`${serverQueue.songs.length} Song in queue!`);
 }
 
 function stop(message, serverQueue) {
 	if (!message.member.voice.channel) return message.channel.send('��o trong k�nh ko stop dc!');
-	serverQueue.songs = [];
-	serverQueue.connection.dispatcher.end();
+	if (serverQueue.songs[0].source === 'youtube') {
+		serverQueue.songs = [];
+		serverQueue.connection.dispatcher.end();
+	  } else if (serverQueue.songs[0].source === 'soundcloud') {
+		serverQueue.songs = [];
+		serverQueue.dispatcher.end();
+	  }
 }
 
 function play(guild, song) {
@@ -207,25 +216,25 @@ function play(guild, song) {
 		queue.delete(guild.id);
 		return;
 	}
+	let stream;
+	if (song.source === 'youtube') {
+	  stream = ytdl(song.url, { filter: 'audioonly', quality: 'highestaudio', highWaterMark: 1<<25 });
+	} else if (song.source === 'soundcloud') {
+	  stream = scdl.downloadFormat(song.url, scdl.FORMATS.OPUS);
+	}
+  
 	const dispatcher = serverQueue.connection
-    .play(song.url,{ filter: "audioonly",
-	quality: "highestaudio",
-	typer: "opus",
-	highWaterMark: 1<<25 })
-    .on('finish', () => {
-      console.log('Music ended!');
-      serverQueue.songs.shift();
-      play(guild, serverQueue.songs[0]);
-    })
-    .on('error', error => {
-      console.error(error);
-    });
-
-  if (song.source === 'youtube') {
-    dispatcher.setVolumeLogarithmic(serverQueue.volume / 5);
-  } else if (song.source === 'soundcloud') {
-    dispatcher.setVolumeLogarithmic(serverQueue.volume / 5);
-  }
+	  .play(stream, { type: 'opus' })
+	  .on('finish', () => {
+		console.log('Music ended!');
+		serverQueue.songs.shift();
+		play(guild, serverQueue.songs[0]);
+	  })
+	  .on('error', error => {
+		console.error(error);
+	  });
+  
+	dispatcher.setVolumeLogarithmic(serverQueue.volume / 5);
 }
 
 client.login(token);

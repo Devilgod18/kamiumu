@@ -121,7 +121,8 @@ async function execute(message, serverQueue) {
 					var songInfo = await youtube.getVideo(yt_playlist[i].url);
 					let song = {
 						title: songInfo.title,
-						url: songInfo.url
+						url: songInfo.url,
+						source: 'youtube'
 						};
 					queueContruct.songs.push(song);
 					
@@ -206,24 +207,19 @@ function play(guild, song) {
 		queue.delete(guild.id);
 		return;
 	}
-	let stream;
-
-	if (song.source === 'youtube') {
-	  stream = ytdl(song.url, { filter: 'audioonly', quality: 'highestaudio', highWaterMark: 1 << 25 });
-	} else if (song.source === 'soundcloud') {
-	  stream = scdl.downloadFormat(song.url, scdl.FORMATS.OPUS);
-	}
-  
 	const dispatcher = serverQueue.connection
-	  .play(stream, { highWaterMark: 1 << 25 })
-	  .on('finish', () => {
-		console.log('Music ended!');
-		serverQueue.songs.shift();
-		play(guild, serverQueue.songs[0]);
-	  })
-	  .on('error', error => {
-		console.error(error);
-	  });
+    .play(song.url,{ filter: "audioonly",
+	quality: "highestaudio",
+	typer: "opus",
+	highWaterMark: 1<<25 })
+    .on('finish', () => {
+      console.log('Music ended!');
+      serverQueue.songs.shift();
+      play(guild, serverQueue.songs[0]);
+    })
+    .on('error', error => {
+      console.error(error);
+    });
 
   if (song.source === 'youtube') {
     dispatcher.setVolumeLogarithmic(serverQueue.volume / 5);

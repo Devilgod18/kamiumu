@@ -210,7 +210,7 @@ function stop(message, serverQueue) {
 	  } else if (serverQueue.songs[0].source === 'soundcloud') {
 		serverQueue.songs = [];
 		if (serverQueue.dispatcher) {
-			erverQueue.connection.dispatcher.destroy();;
+			erverQueue.connection.dispatcher.destroy();
 		  } else {
 			console.error('Dispatcher undefined for soundcloud song.');
 		  }

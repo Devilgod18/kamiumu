@@ -206,18 +206,24 @@ function play(guild, song) {
 		queue.delete(guild.id);
 		return;
 	}
+	let stream;
+
+	if (song.source === 'youtube') {
+	  stream = ytdl(song.url, { filter: 'audioonly', quality: 'highestaudio', highWaterMark: 1 << 25 });
+	} else if (song.source === 'soundcloud') {
+	  stream = scdl.downloadFormat(song.url, scdl.FORMATS.OPUS);
+	}
+  
 	const dispatcher = serverQueue.connection
-    .play(ytdl(song.url,{ filter: "audioonly",
-	quality: "highestaudio",
-	highWaterMark: 1<<25 }))
-    .on('finish', () => {
-      console.log('Music ended!');
-      serverQueue.songs.shift();
-      play(guild, serverQueue.songs[0]);
-    })
-    .on('error', error => {
-      console.error(error);
-    });
+	  .play(stream, { highWaterMark: 1 << 25 })
+	  .on('finish', () => {
+		console.log('Music ended!');
+		serverQueue.songs.shift();
+		play(guild, serverQueue.songs[0]);
+	  })
+	  .on('error', error => {
+		console.error(error);
+	  });
 
   if (song.source === 'youtube') {
     dispatcher.setVolumeLogarithmic(serverQueue.volume / 5);

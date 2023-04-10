@@ -75,6 +75,7 @@ async function execute(message, serverQueue) {
 			let song = {
 			  title: trackInfo.title,
 			  url: track,
+			  source: 'soundcloud'
 			};
 			if (!serverQueue) {
 			  queue.set(message.guild.id, queueContruct);
@@ -99,7 +100,8 @@ async function execute(message, serverQueue) {
 			for (let i = 0; i < videos.length; i++) {
 			  let song = {
 				title: videos[i].title,
-				url: videos[i].shortUrl
+				url: videos[i].shortUrl,
+				source: 'youtube'
 			  };
 			  if (!serverQueue) {
 				queue.set(message.guild.id, queueContruct);
@@ -124,7 +126,8 @@ async function execute(message, serverQueue) {
 			var songInfo = await ytdl.getInfo(args[1]);
 			let song = {
 			  title: songInfo.videoDetails.title,
-			  url: songInfo.videoDetails.video_url
+			  url: songInfo.videoDetails.video_url,
+			  source: 'youtube'
 			};
 			if (!serverQueue) {
 				queue.set(message.guild.id, queueContruct);
@@ -175,19 +178,11 @@ function play(guild, song) {
 		queue.delete(guild.id);
 		return;
 	}
-	let stream;
-	if (song.url.includes('soundcloud.com')) {
-	  stream = scdl.createStream(song.url, process.env.SOUNDCLOUD_CLIENT_ID);
-	} else {
-	  stream = ytdl(song.url, {
-		filter: 'audioonly',
-		quality: 'highestaudio',
-		highWaterMark: 1 << 25
-	  });
-	}
-
 	const dispatcher = serverQueue.connection
-    .play(stream)
+    .play(song.url,{ filter: "audioonly",
+	quality: "highestaudio",
+	typer: "opus",
+	highWaterMark: 1<<25 })
     .on('finish', () => {
       console.log('Music ended!');
       serverQueue.songs.shift();
@@ -196,7 +191,12 @@ function play(guild, song) {
     .on('error', error => {
       console.error(error);
     });
-  dispatcher.setVolumeLogarithmic(serverQueue.volume / 5);
+
+  if (song.source === 'youtube') {
+    dispatcher.setVolumeLogarithmic(serverQueue.volume / 5);
+  } else if (song.source === 'soundcloud') {
+    dispatcher.setVolumeLogarithmic(serverQueue.volume / 150);
+  }
 }
 
 client.login(token);

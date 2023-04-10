@@ -20,7 +20,7 @@
     "node-pre-gyp": "^0.14.0",
     "opusscript": "0.0.7",
     "request": "^2.88.0",
-    "ytdl-core": "^4.11.1",
+    "ytdl-core": "^4.10.1",
     "ytpl": "^2.2.3"
   },
   "scripts": {

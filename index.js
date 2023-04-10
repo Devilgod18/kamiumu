@@ -14,7 +14,7 @@ const DabiClient = new DabiImages.Client();
 const request = require('request');
 const cheerio = require('cheerio');
 const youtube = new YouTube(process.env.YOUTUBE_API_KEY);
-const scdl = require("soundcloud-downloader").default;
+const scdl = require('soundcloud-downloader').default;
 client.once('ready', () => {
 	console.log('Ready!');
 });

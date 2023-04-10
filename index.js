@@ -146,6 +146,8 @@ async function execute(message, serverQueue) {
 				message.channel.send(`${song.title} added to the queue!`);
 				return message.channel.send(`${serverQueue.songs.length} Song in queue!`);
 				  }
+				}
+			
 		
 	
 	

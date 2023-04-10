@@ -206,6 +206,8 @@ function stop(message, serverQueue) {
 		serverQueue.songs = [];
 		serverQueue.dispatcher.end();
 	  }
+	  
+	  message.channel.send('Queue has been stopped!');
 }
 
 function play(guild, song) {
@@ -216,25 +218,23 @@ function play(guild, song) {
 		queue.delete(guild.id);
 		return;
 	}
-	let stream;
+	let dispatcher;
+
 	if (song.source === 'youtube') {
-	  stream = ytdl(song.url, { filter: 'audioonly', quality: 'highestaudio', highWaterMark: 1<<25 });
+		dispatcher = serverQueue.connection.play(ytdl(song.url, { filter: 'audioonly', quality: 'highestaudio', highWaterMark: 1 << 25 }));
+		dispatcher.setVolumeLogarithmic(serverQueue.volume / 5);
 	} else if (song.source === 'soundcloud') {
-	  stream = scdl.downloadFormat(song.url, scdl.FORMATS.OPUS);
+		dispatcher = serverQueue.connection.play(song.url, { highWaterMark: 1 << 25 });
+		dispatcher.setVolumeLogarithmic(serverQueue.volume / 5);
 	}
-  
-	const dispatcher = serverQueue.connection
-	  .play(stream, { type: 'opus' })
-	  .on('finish', () => {
+
+	dispatcher.on('finish', () => {
 		console.log('Music ended!');
 		serverQueue.songs.shift();
 		play(guild, serverQueue.songs[0]);
-	  })
-	  .on('error', error => {
+	}).on('error', error => {
 		console.error(error);
-	  });
-  
-	dispatcher.setVolumeLogarithmic(serverQueue.volume / 5);
+	});
 }
 
 client.login(token);

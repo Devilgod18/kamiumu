@@ -188,35 +188,44 @@ async function execute(message, serverQueue) {
 
  
 function skip(message, serverQueue) {
-	if (!message.member.voice.channel) return message.channel.send('Ko trong k�nh');
+	if (!message.member.voice.channel) return message.channel.send('Ko trong kênh');
 	if (!serverQueue) return message.channel.send('Ko co skip!');
 	if (serverQueue.songs[0].source === 'youtube') {
-		serverQueue.connection.dispatcher.end();
-	  } else if (serverQueue.songs[0].source === 'soundcloud') {
-		if (serverQueue.dispatcher) {
-			serverQueue.connection.dispatcher.destroy();
-		  } else {
-			console.error('Dispatcher undefined for soundcloud song.');
-		  }
+	  serverQueue.connection.dispatcher.end();
+	} else if (serverQueue.songs[0].source === 'soundcloud') {
+	  if (serverQueue.dispatcher) {
+		serverQueue.connection.dispatcher.destroy();
+	  } else {
+		console.error('Dispatcher undefined for soundcloud song.');
+		serverQueue.songs.shift();
+		if (serverQueue.songs.length > 0) {
+		  play(message.guild, serverQueue.songs[0]);
+		} else {
+		  serverQueue.playing = false;
+		  if (serverQueue.connection) serverQueue.connection.disconnect();
 		}
+	  }
+	}
 	message.channel.send(`${serverQueue.songs.length} Song in queue!`);
-}
-
-function stop(message, serverQueue) {
-	if (!message.member.voice.channel) return message.channel.send('��o trong k�nh ko stop dc!');
+  }
+  
+  function stop(message, serverQueue) {
+	if (!message.member.voice.channel) return message.channel.send('Đéo trong kênh ko stop dc!');
 	if (serverQueue.songs[0].source === 'youtube') {
-		serverQueue.songs = [];
-		serverQueue.connection.dispatcher.end();
-	  } else if (serverQueue.songs[0].source === 'soundcloud') {
-		serverQueue.songs = [];
-		if (serverQueue.dispatcher) {
-			erverQueue.connection.dispatcher.destroy();
-		  } else {
-			console.error('Dispatcher undefined for soundcloud song.');
-		  }
-		}
-	  message.channel.send('Queue has been stopped!');
-}
+	  serverQueue.songs = [];
+	  serverQueue.connection.dispatcher.end();
+	} else if (serverQueue.songs[0].source === 'soundcloud') {
+	  serverQueue.songs = [];
+	  if (serverQueue.dispatcher) {
+		serverQueue.connection.dispatcher.destroy();
+	  } else {
+		console.error('Dispatcher undefined for soundcloud song.');
+		serverQueue.playing = false;
+		if (serverQueue.connection) serverQueue.connection.disconnect();
+	  }
+	}
+	message.channel.send('Queue has been stopped!');
+  }
 
 function play(guild, song) {
 	const serverQueue = queue.get(guild.id);

@@ -14,7 +14,7 @@ const DabiClient = new DabiImages.Client();
 const request = require('request');
 const cheerio = require('cheerio');
 const youtube = new YouTube(process.env.YOUTUBE_API_KEY);
-
+const scdl = require("soundcloud-downloader").default;
 client.once('ready', () => {
 	console.log('Ready!');
 });
@@ -69,6 +69,33 @@ async function execute(message, serverQueue) {
 			playing: true,
 		};
 	if (!validate_playlist){
+		if (args[1].includes('soundcloud.com')) {
+			// Download SoundCloud track
+			const trackInfo = await scdl.getInfo(args[1]);
+			const track = await scdl.downloadFormat(trackInfo.permalink_url, scdl.FORMATS.OPUS, process.env.SOUNDCLOUD_CLIENT_ID);
+			let song = {
+				title: trackInfo.title,
+				url: track,
+			};
+			if (!serverQueue) {
+				queue.set(message.guild.id, queueContruct);
+				queueContruct.songs.push(song);
+				try {
+					var connection = await voiceChannel.join();
+					queueContruct.connection = connection;
+					play(message.guild, queueContruct.songs[0]);
+				} catch (err) {
+					console.log(err);
+					queue.delete(message.guild.id);
+					return message.channel.send(err);
+				}
+			} else {
+				serverQueue.songs.push(song);
+				message.channel.send(`${song.title} added to the queue!`);
+				return message.channel.send(`${serverQueue.songs.length} song(s) in queue!`);
+			}
+		}
+		else {
 		var songInfo = await ytdl.getInfo(args[1]);
 		let song = {
 			title: songInfo.videoDetails.title,
@@ -89,14 +116,15 @@ async function execute(message, serverQueue) {
 			queue.delete(message.guild.id);
 			return message.channel.send(err);
 		}
-	} else {
+	    } else {
 		serverQueue.songs.push(song);
 		console.log(serverQueue.songs);
 		message.channel.send(`${song.title} added to the queue!`);
 		return message.channel.send(`${serverQueue.songs.length} Song in queue!`);
-	}
-	}
-	else if (validate_playlist){
+	      }
+    }
+}
+	else{
 		if(!serverQueue){
 		var yt_playlist = await youtube.getPlaylist(search_string);
 		var songInfo = await youtube.getVideo(yt_playlist[0].url);
@@ -178,7 +206,7 @@ function play(guild, song) {
 		return;
 	}
 
-	const dispatcher = serverQueue.connection.play(ytdl(song.url,{filter: 'audioonly', quality: 'highestaudio',highWaterMark: 1<<25 },{highWaterMark: 1}))
+	const dispatcher = serverQueue.connection.play(ytdl(song.url,{filter: 'audioonly', quality: 'highestaudio',typer:'opus',highWaterMark: 1<<25 },{highWaterMark: 1}))
 
 		.on("finish", () => {
 

@@ -93,7 +93,7 @@ async function execute(message, serverQueue) {
 			  serverQueue.songs.push(song);
 			  console.log(serverQueue.songs);
 			  message.channel.send(`${song.title} added to the queue!`);
-			  return message.channel.send(`${serverQueue.songs.length} song(s) in queue!`);
+			  message.channel.send(`${serverQueue.songs.length} song(s) in queue!`);
 			}
 		  } else if (isPlaylist) {
 			if(!serverQueue){
@@ -135,7 +135,7 @@ async function execute(message, serverQueue) {
 				console.log(queueContruct.songs.length);
 				
 				message.channel.send(`${yt_playlist.length} Song playlist added to the queue!`);
-				return message.channel.send(`${queueContruct.songs.length} Song in queue!`);
+				message.channel.send(`${queueContruct.songs.length} Song in queue!`);
 				}
 				
 				else{
@@ -150,7 +150,7 @@ async function execute(message, serverQueue) {
 					console.log(serverQueue.songs);
 					}
 					message.channel.send(`${yt_playlist.length} Song playlist added to the queue!`)
-					return message.channel.send(`${serverQueue.songs.length} Song in queue!`);
+					message.channel.send(`${serverQueue.songs.length} Song in queue!`);
 				}
 		  } else {
 			var songInfo = await ytdl.getInfo(args[1]);
@@ -177,7 +177,7 @@ async function execute(message, serverQueue) {
 				serverQueue.songs.push(song);
 				console.log(serverQueue.songs);
 				message.channel.send(`${song.title} added to the queue!`);
-				return message.channel.send(`${serverQueue.songs.length} Song in queue!`);
+				message.channel.send(`${serverQueue.songs.length} Song in queue!`);
 				  }
 				}
 			

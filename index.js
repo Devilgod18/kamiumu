@@ -226,22 +226,34 @@ function play(guild, song) {
 		return;
 	}
 	let dispatcher;
+  if (song.source === 'youtube') {
+    dispatcher = serverQueue.connection
+      .play(ytdl(song.url, { filter: 'audioonly', quality: 'highestaudio', highWaterMark: 1 << 25 }))
+      .on('finish', () => {
+        console.log('Music ended!');
+        serverQueue.songs.shift();
+        play(guild, serverQueue.songs[0]);
+      })
+      .on('error', error => {
+        console.error(error);
+      });
+  } else if (song.source === 'soundcloud') {
+    dispatcher = serverQueue.connection
+      .play(song.url, { highWaterMark: 1 << 25 })
+      .on('finish', () => {
+        console.log('Music ended!');
+        serverQueue.songs.shift();
+        play(guild, serverQueue.songs[0]);
+      })
+      .on('error', error => {
+        console.error(error);
+      });
+  }
 
-	if (song.source === 'youtube') {
-		dispatcher = serverQueue.connection.play(ytdl(song.url, { filter: 'audioonly', quality: 'highestaudio', highWaterMark: 1 << 25 }));
-		dispatcher.setVolumeLogarithmic(serverQueue.volume / 5);
-	} else if (song.source === 'soundcloud') {
-		dispatcher = serverQueue.connection.play(song.url, { highWaterMark: 1 << 25 });
-		dispatcher.setVolumeLogarithmic(serverQueue.volume / 5);
-	}
-
-	dispatcher.on('finish', () => {
-		console.log('Music ended!');
-		serverQueue.songs.shift();
-		play(guild, serverQueue.songs[0]);
-	}).on('error', error => {
-		console.error(error);
-	});
+  if (dispatcher) {
+    serverQueue.dispatcher = dispatcher;
+    dispatcher.setVolumeLogarithmic(serverQueue.volume / 5);
+  }
 }
 
 client.login(token);

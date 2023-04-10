@@ -225,9 +225,8 @@ async function play(guild, song) {
         console.error(error);
       });
   } else if (song.source === 'soundcloud') {
-    const stream = await scdl.downloadFormat(song.url, scdl.FORMATS.OPUS, process.env.SOUNDCLOUD_CLIENT_ID);
     dispatcher = serverQueue.connection
-      .play(stream, { type: 'opus', highWaterMark: 1 })
+      .play(song.url, { type: 'opus', highWaterMark: 1 })
       .on('finish', () => {
         console.log('Music ended!');
         serverQueue.songs.shift();

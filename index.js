@@ -194,7 +194,7 @@ function skip(message, serverQueue) {
 		serverQueue.connection.dispatcher.end();
 	  } else if (serverQueue.songs[0].source === 'soundcloud') {
 		if (serverQueue.dispatcher) {
-			serverQueue.connection.dispatcher.end();
+			serverQueue.connection.dispatcher.destroy();
 		  } else {
 			console.error('Dispatcher undefined for soundcloud song.');
 		  }
@@ -210,7 +210,7 @@ function stop(message, serverQueue) {
 	  } else if (serverQueue.songs[0].source === 'soundcloud') {
 		serverQueue.songs = [];
 		if (serverQueue.dispatcher) {
-			serverQueue.connection.dispatcher.end();
+			erverQueue.connection.dispatcher.destroy();;
 		  } else {
 			console.error('Dispatcher undefined for soundcloud song.');
 		  }

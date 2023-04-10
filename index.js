@@ -245,7 +245,14 @@ function play(guild, song) {
         } else {
           serverQueue.songs.shift();
         }
-        play(guild, serverQueue.songs[0]);
+        const nextSong = serverQueue.songs[0];
+        if (nextSong && nextSong.source === 'youtube') {
+          // The next song is a YouTube song, start playing it
+          play(guild, nextSong);
+        } else {
+          // The next song is another SoundCloud song, start playing it
+          play(guild, serverQueue.songs[0]);
+        }
       })
       .on('error', error => {
         console.error(error);

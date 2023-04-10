@@ -189,37 +189,37 @@ async function execute(message, serverQueue) {
 
  
 function skip(message, serverQueue) {
-	if (!message.member.voice.channel) return message.channel.send('You are not in a voice channel!');
-	if (!serverQueue) return message.channel.send('There is no song to skip!');
-	
-	// Check if the current song is from SoundCloud
-	const isSoundCloudSong = serverQueue.songs[0].source === 'soundcloud';
-	
-	// End the dispatcher based on whether the current song is from SoundCloud or YouTube
-	if (isSoundCloudSong) {
-	  if (serverQueue.dispatcher) {
-		serverQueue.dispatcher.destroy();
-	  } else {
-		console.error('Dispatcher undefined for SoundCloud song.');
-	  }
-	} else {
-	  serverQueue.connection.dispatcher.end();
-	}
-	
-	// Remove the skipped song from the queue
-	serverQueue.songs.shift();
-	
-	// Play the next song in the queue if there is any
-	if (serverQueue.songs.length > 0) {
-	  const nextSong = serverQueue.songs[0];
-	  play(message.guild, nextSong);
-	} else {
-	  // No more songs in the queue, leave the voice channel
-	  serverQueue.voiceChannel.leave();
-	}
-	
-	message.channel.send(`${serverQueue.songs.length} Song(s) in queue!`);
+  if (!message.member.voice.channel) return message.channel.send('You are not in a voice channel!');
+  if (!serverQueue) return message.channel.send('There is no song to skip!');
+  
+  // Check if the current song is from SoundCloud
+  const isSoundCloudSong = serverQueue.songs[0].source === 'soundcloud';
+  
+  // End the dispatcher based on whether the current song is from SoundCloud or YouTube
+  if (isSoundCloudSong) {
+    if (serverQueue.dispatcher) {
+      serverQueue.dispatcher.destroy();
+    } else {
+      console.error('Dispatcher undefined for SoundCloud song.');
+    }
+  } else {
+    serverQueue.connection.dispatcher.end();
   }
+  
+  // Remove the skipped song from the queue
+  serverQueue.songs.shift();
+  
+  // Play the next song in the queue if there is any
+  if (serverQueue.songs.length > 0) {
+    const nextSong = serverQueue.songs[0];
+    play(message.guild, nextSong);
+  } else {
+    // No more songs in the queue, leave the voice channel
+    serverQueue.voiceChannel.leave();
+  }
+  
+  message.channel.send(`${serverQueue.songs.length} Song(s) in queue!`);
+}
   
   function stop(message, serverQueue) {
 	if (!message.member.voice.channel) return message.channel.send('You are not in a voice channel!');

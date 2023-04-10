@@ -226,7 +226,7 @@ async function play(guild, song) {
       });
   } else if (song.source === 'soundcloud') {
     dispatcher = serverQueue.connection
-      .play(song.url, { type: 'opus', highWaterMark: 1 })
+      .play(song.url, { type: 'opus', highWaterMark: 1 <<25})
       .on('finish', () => {
         console.log('Music ended!');
         serverQueue.songs.shift();

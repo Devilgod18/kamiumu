@@ -76,7 +76,7 @@ async function execute(message, serverQueue) {
 			  title: trackInfo.title,
 			  url: track,
 			  source: 'soundcloud',
-			  dispatcher: StreamDispatcher | null
+			  
 			};
 			if (!serverQueue) {
 			  queue.set(message.guild.id, queueContruct);

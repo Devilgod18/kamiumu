@@ -2,11 +2,10 @@
   "name": "kami",
   "version": "1.0.0",
   "description": "",
-  
   "main": "index.js",
   "engines": {
     "node": "14.21.3"
-},
+  },
   "dependencies": {
     "@discordjs/uws": "^10.149.0",
     "cheerio": "^1.0.0-rc.3",
@@ -16,7 +15,6 @@
     "discord.js-v11": "^12.1.1",
     "ffmpeg": "0.0.4",
     "ffmpeg-static": "^3.0.0",
-    
     "node-fetch": "^2.6.1",
     "node-pre-gyp": "^0.14.0",
     "opusscript": "0.0.7",
@@ -24,7 +22,6 @@
     "ytdl-core": "^4.11.2",
     "ytpl": "^2.2.3"
   },
- 
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },

@@ -192,8 +192,8 @@ function skip(message, serverQueue) {
 	if (serverQueue.songs[0].source === 'youtube') {
 		serverQueue.connection.dispatcher.end();
 	  } else if (serverQueue.songs[0].source === 'soundcloud') {
-		if (serverQueue.dispatcher) {
-			serverQueue.dispatcher.end();
+		if (serverQueue.scdispatcher) {
+			serverQueue.scdispatcher.end();
 		  } else {
 			console.error('Dispatcher undefined for soundcloud song.');
 		  }
@@ -208,8 +208,8 @@ function stop(message, serverQueue) {
 		serverQueue.connection.dispatcher.end();
 	  } else if (serverQueue.songs[0].source === 'soundcloud') {
 		serverQueue.songs = [];
-		if (serverQueue.dispatcher) {
-			serverQueue.dispatcher.end();
+		if (serverQueue.scdispatcher) {
+			serverQueue.scdispatcher.end();
 		  } else {
 			console.error('Dispatcher undefined for soundcloud song.');
 		  }
@@ -226,6 +226,7 @@ function play(guild, song) {
 		return;
 	}
 	let dispatcher;
+	let scdispatcher;
   if (song.source === 'youtube') {
     dispatcher = serverQueue.connection
       .play(ytdl(song.url, { filter: 'audioonly', quality: 'highestaudio', highWaterMark: 1 << 25 }))
@@ -248,6 +249,7 @@ function play(guild, song) {
       .on('error', error => {
         console.error(error);
       });
+	  serverQueue.scdispatcher = dispatcher;
   }
 
   if (dispatcher) {

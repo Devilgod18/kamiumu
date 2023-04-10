@@ -271,7 +271,7 @@ function play(guild, song) {
           console.error(error);
         });
 	  }
-	
+	  }
 
   if (dispatcher) {
     serverQueue.dispatcher = dispatcher;

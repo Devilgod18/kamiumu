@@ -75,7 +75,8 @@ async function execute(message, serverQueue) {
 			let song = {
 			  title: trackInfo.title,
 			  url: track,
-			  source: 'soundcloud'
+			  source: 'soundcloud',
+			  dispatcher: StreamDispatcher | null
 			};
 			if (!serverQueue) {
 			  queue.set(message.guild.id, queueContruct);
@@ -188,42 +189,62 @@ async function execute(message, serverQueue) {
 
  
 function skip(message, serverQueue) {
-	if (!message.member.voice.channel) return message.channel.send('Ko trong kênh');
-	if (!serverQueue) return message.channel.send('Ko co skip!');
-	if (serverQueue.songs.length < 1) {
-		return message.channel.send('Queue is empty!');
+	if (!message.member.voice.channel) return message.channel.send('You are not in a voice channel!');
+	if (!serverQueue) return message.channel.send('There is no song to skip!');
+	
+	// Check if the current song is from SoundCloud
+	const isSoundCloudSong = serverQueue.songs[0].source === 'soundcloud';
+	
+	// End the dispatcher based on whether the current song is from SoundCloud or YouTube
+	if (isSoundCloudSong) {
+	  if (serverQueue.dispatcher) {
+		serverQueue.dispatcher.destroy();
+	  } else {
+		console.error('Dispatcher undefined for SoundCloud song.');
 	  }
-	  
-	  // Check the source of the next song in the queue
-	  const nextSongSource = serverQueue.songs[1].source;
-	  
-	  // If the next song is a SoundCloud song and its dispatcher is undefined, remove it from the queue
-	  if (nextSongSource === 'soundcloud' && !serverQueue.dispatcher) {
-		serverQueue.songs.splice(1, 1);
-		return message.channel.send('Skipped SoundCloud song with undefined dispatcher.');
-	  }
-	  
-	  // Otherwise, end the dispatcher for the current song
+	} else {
 	  serverQueue.connection.dispatcher.end();
-	  
-	  return message.channel.send(`${serverQueue.songs.length - 1} Song in queue!`);
+	}
+	
+	// Remove the skipped song from the queue
+	serverQueue.songs.shift();
+	
+	// Play the next song in the queue if there is any
+	if (serverQueue.songs.length > 0) {
+	  const nextSong = serverQueue.songs[0];
+	  play(message.guild, nextSong);
+	} else {
+	  // No more songs in the queue, leave the voice channel
+	  serverQueue.voiceChannel.leave();
+	}
+	
+	message.channel.send(`${serverQueue.songs.length} Song(s) in queue!`);
   }
   
   function stop(message, serverQueue) {
-	if (!message.member.voice.channel) return message.channel.send('Đéo trong kênh ko stop dc!');
-	if (serverQueue.songs[0].source === 'youtube') {
-	  serverQueue.songs = [];
-	  serverQueue.connection.dispatcher.end();
-	} else if (serverQueue.songs[0].source === 'soundcloud') {
-	  serverQueue.songs = [];
+	if (!message.member.voice.channel) return message.channel.send('You are not in a voice channel!');
+	if (!serverQueue) return message.channel.send('There is no song to stop!');
+	
+	// Check if the current song is from SoundCloud
+	const isSoundCloudSong = serverQueue.songs[0].source === 'soundcloud';
+	
+	// End the dispatcher based on whether the current song is from SoundCloud or YouTube
+	if (isSoundCloudSong) {
 	  if (serverQueue.dispatcher) {
-		serverQueue.connection.dispatcher.destroy();
+		serverQueue.dispatcher.destroy();
 	  } else {
-		console.error('Dispatcher undefined for soundcloud song.');
-		serverQueue.playing = false;
-		if (serverQueue.connection) serverQueue.connection.disconnect();
+		console.error('Dispatcher undefined for SoundCloud song.');
 	  }
+	} else {
+	  serverQueue.connection.dispatcher.end();
 	}
+	
+	// Clear the queue
+	serverQueue.songs = [];
+	
+	// Leave the voice channel
+	serverQueue.voiceChannel.leave();
+	
 	message.channel.send('Queue has been stopped!');
   }
 

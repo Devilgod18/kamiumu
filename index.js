@@ -67,6 +67,7 @@ async function execute(message, serverQueue) {
 			songs: [],
 			volume: 5,
 			playing: true,
+			isPlayingSoundCloud: false
 		};
 		if (args[1].includes('soundcloud.com')) {
 			// Download SoundCloud track
@@ -80,6 +81,7 @@ async function execute(message, serverQueue) {
 			if (!serverQueue) {
 			  queue.set(message.guild.id, queueContruct);
 			  queueContruct.songs.push(song);
+			  queueContruct.isPlayingSoundCloud = true;
 			  try {
 				var connection = await voiceChannel.join();
 				queueContruct.connection = connection;
@@ -92,6 +94,7 @@ async function execute(message, serverQueue) {
 			} else {
 			  serverQueue.songs.push(song);
 			  console.log(serverQueue.songs);
+			  queueContruct.isPlayingSoundCloud = true;
 			  message.channel.send(`${song.title} added to the queue!`);
 			  message.channel.send(`${serverQueue.songs.length} song(s) in queue!`);
 			}
@@ -188,37 +191,19 @@ async function execute(message, serverQueue) {
 
  
 function skip(message, serverQueue) {
-	if (!message.member.voice.channel) return message.channel.send('Ko trong k�nh');
+	if (!message.member.voiceChannel) return message.channel.send('Ko trong k�nh');
 	if (!serverQueue) return message.channel.send('Ko co skip!');
-	if (serverQueue.songs[0].source === 'youtube') {
-		serverQueue.connection.dispatcher.end();
-	  } else if (serverQueue.songs[0].source === 'soundcloud') {
-		if (serverQueue.dispatcher) {
-			serverQueue.connection.dispatcher.end();
-		  } else {
-			console.error('Dispatcher undefined for soundcloud song.');
-		  }
-		}
+	serverQueue.connection.dispatcher.end();
 	message.channel.send(`${serverQueue.songs.length} Song in queue!`);
 }
 
 function stop(message, serverQueue) {
-	if (!message.member.voice.channel) return message.channel.send('��o trong k�nh ko stop dc!');
-	if (serverQueue.songs[0].source === 'youtube') {
-		serverQueue.songs = [];
-		serverQueue.connection.dispatcher.end();
-	  } else if (serverQueue.songs[0].source === 'soundcloud') {
-		serverQueue.songs = [];
-		if (serverQueue.dispatcher) {
-			serverQueue.connection.dispatcher.end();
-		  } else {
-			console.error('Dispatcher undefined for soundcloud song.');
-		  }
-		}
-	  message.channel.send('Queue has been stopped!');
+	if (!message.member.voiceChannel) return message.channel.send('��o trong k�nh ko stop dc!');
+	serverQueue.songs = [];
+	serverQueue.connection.dispatcher.end();
 }
 
-function play(guild, song) {
+async function play(guild, song) {
 	const serverQueue = queue.get(guild.id);
 
 	if (!song) {
@@ -240,8 +225,9 @@ function play(guild, song) {
         console.error(error);
       });
   } else if (song.source === 'soundcloud') {
+    const stream = await scdl.downloadFormat(song.url, scdl.FORMATS.OPUS, process.env.SOUNDCLOUD_CLIENT_ID);
     dispatcher = serverQueue.connection
-      .play(song.url, { highWaterMark: 1 << 25 })
+      .play(stream, { type: 'opus', highWaterMark: 1 })
       .on('finish', () => {
         console.log('Music ended!');
         serverQueue.songs.shift();
@@ -250,7 +236,6 @@ function play(guild, song) {
       .on('error', error => {
         console.error(error);
       });
-	  
   }
 
   if (dispatcher) {

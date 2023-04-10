@@ -219,7 +219,9 @@ function play(guild, song) {
       .on('finish', () => {
         console.log('Music ended!');
         serverQueue.songs.shift();
-        play(guild, serverQueue.songs[0]);
+        if (serverQueue.songs.length) {
+			play(guild, serverQueue.songs[0]);
+		  }
       })
       .on('error', error => {
         console.error(error);
@@ -230,7 +232,9 @@ function play(guild, song) {
       .on('finish', () => {
         console.log('Music ended!');
         serverQueue.songs.shift();
-        play(guild, serverQueue.songs[0]);
+        if (serverQueue.songs.length) {
+			play(guild, serverQueue.songs[0]);
+		  }
       })
       .on('error', error => {
         console.error(error);

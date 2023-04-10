@@ -206,21 +206,10 @@ function play(guild, song) {
 		queue.delete(guild.id);
 		return;
 	}
-	let stream;
-
-  if (song.source === 'youtube') {
-    stream = ytdl(song.url, { filter: 'audioonly', quality: 'highestaudio', highWaterMark: 1 << 25 });
-    dispatcher.setVolumeLogarithmic(serverQueue.volume / 5);
-  } else if (song.source === 'soundcloud') {
-    stream = scdl.downloadFormat(song.url, scdl.FORMATS.OPUS, process.env.SOUNDCLOUD_CLIENT_ID);
-    dispatcher.setVolumeLogarithmic(serverQueue.volume / 5);
-  } else {
-    console.error('Invalid song source');
-    return;
-  }
-
-  const dispatcher = serverQueue.connection
-    .play(stream, { highWaterMark: 1 << 25 })
+	const dispatcher = serverQueue.connection
+    .play(ytdl(song.url,{ filter: "audioonly",
+	quality: "highestaudio",
+	highWaterMark: 1<<25 }))
     .on('finish', () => {
       console.log('Music ended!');
       serverQueue.songs.shift();
@@ -229,6 +218,12 @@ function play(guild, song) {
     .on('error', error => {
       console.error(error);
     });
+
+  if (song.source === 'youtube') {
+    dispatcher.setVolumeLogarithmic(serverQueue.volume / 5);
+  } else if (song.source === 'soundcloud') {
+    dispatcher.setVolumeLogarithmic(serverQueue.volume / 5);
+  }
 }
 
 client.login(token);

@@ -175,21 +175,28 @@ function play(guild, song) {
 		queue.delete(guild.id);
 		return;
 	}
+	let stream;
+	if (song.url.includes('soundcloud.com')) {
+	  stream = scdl.createStream(song.url, process.env.SOUNDCLOUD_CLIENT_ID);
+	} else {
+	  stream = ytdl(song.url, {
+		filter: 'audioonly',
+		quality: 'highestaudio',
+		highWaterMark: 1 << 25
+	  });
+	}
 
-	const dispatcher = serverQueue.connection.play(ytdl(song.url,{filter: 'audioonly', quality: 'highestaudio',typer:'opus',highWaterMark: 1<<25 },{highWaterMark: 1}))
-
-		.on("finish", () => {
-
-			console.log('Music ended!');
-
-			serverQueue.songs.shift();
-			play(guild, serverQueue.songs[0]);
-			highWaterMark: 1<<25
-		})
-		.on('error', error => {
-			console.error(error);
-		});
-	dispatcher.setVolumeLogarithmic(serverQueue.volume / 5);
+	const dispatcher = serverQueue.connection
+    .play(stream)
+    .on('finish', () => {
+      console.log('Music ended!');
+      serverQueue.songs.shift();
+      play(guild, serverQueue.songs[0]);
+    })
+    .on('error', error => {
+      console.error(error);
+    });
+  dispatcher.setVolumeLogarithmic(serverQueue.volume / 5);
 }
 
 client.login(token);

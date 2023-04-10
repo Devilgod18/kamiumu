@@ -60,127 +60,58 @@ async function execute(message, serverQueue) {
 	if (!permissions.has('CONNECT') || !permissions.has('SPEAK')) {
 		return message.channel.send('I need the permissions to join and speak in your voice channel!');
 	}
-	const queueContruct = {
-			textChannel: message.channel,
-			voiceChannel: voiceChannel,
-			connection: null,
-			songs: [],
-			volume: 5,
-			playing: true,
-		};
-		if (args[1].includes('soundcloud.com')) {
-			// Download SoundCloud track
-			const trackInfo = await scdl.getInfo(args[1], process.env.SOUNDCLOUD_CLIENT_ID);
-			const track = await scdl.downloadFormat(trackInfo.permalink_url, scdl.FORMATS.OPUS, process.env.SOUNDCLOUD_CLIENT_ID);
-			let song = {
-			  title: trackInfo.title,
-			  url: track,
-			  source: 'soundcloud'
-			};
-			if (!serverQueue) {
-			  queue.set(message.guild.id, queueContruct);
-			  queueContruct.songs.push(song);
-			  try {
-				var connection = await voiceChannel.join();
-				queueContruct.connection = connection;
-				play(message.guild, queueContruct.songs[0]);
-			  } catch (err) {
-				console.log(err);
-				queue.delete(message.guild.id);
-				return message.channel.send(err);
-			  }
-			} else {
-			  serverQueue.songs.push(song);
-			  message.channel.send(`${song.title} added to the queue!`);
-			  return message.channel.send(`${serverQueue.songs.length} song(s) in queue!`);
-			}
-		  } else if (isPlaylist) {
-			if(!serverQueue){
-				var yt_playlist = await youtube.getPlaylist(search_string);
-				var songInfo = await youtube.getVideo(yt_playlist[0].url);
-				let song = {
-						title: songInfo.title,
-						url: songInfo.url,
-						source: 'youtube'
+	let song = null;
+  if (args[1].includes('soundcloud.com')) {
+    // Download SoundCloud track
+    const trackInfo = await scdl.getInfo(args[1], process.env.SOUNDCLOUD_CLIENT_ID);
+    const track = await scdl.downloadFormat(trackInfo.permalink_url, scdl.FORMATS.OPUS, process.env.SOUNDCLOUD_CLIENT_ID);
+    song = {
+      title: trackInfo.title,
+      url: track,
+      source: 'soundcloud'
+    };
+  } else if (isPlaylist) {
+    var yt_playlist = await youtube.getPlaylist(search_string);
+    song = await youtube.getVideo(yt_playlist[0].url);
+    song = {
+      title: song.title,
+      url: song.url,
+      source: 'youtube'
+    };
+  } else {
+    var songInfo = await ytdl.getInfo(args[1]);
+    song = {
+      title: songInfo.videoDetails.title,
+      url: songInfo.videoDetails.video_url,
+      source: 'youtube'
+    };
+  }
 
-						};
-				queue.set(message.guild.id, queueContruct);
-				queueContruct.songs.push(song);
-				try {
-					var connection = await voiceChannel.join();
-					queueContruct.connection = connection;
-					play(message.guild, queueContruct.songs[0]);
-					
-				} catch (err) {
-					console.log(err);
-					queue.delete(message.guild.id);
-					return message.channel.send(err);
-				}
-				
-				for (var i = 1;i < yt_playlist.length;i++) {
-					var songInfo = await youtube.getVideo(yt_playlist[i].url);
-					let song = {
-						title: songInfo.title,
-						url: songInfo.url,
-						source: 'youtube'
-						};
-					queueContruct.songs.push(song);
-					
-					
-							
-				}
-				
-				console.log(queueContruct.songs);
-				console.log(queueContruct.songs.length);
-				
-				message.channel.send(`${yt_playlist.length} Song playlist added to the queue!`);
-				return message.channel.send(`${queueContruct.songs.length} Song in queue!`);
-				}
-				
-				else{
-					var yt_playlist = await youtube.getPlaylist(search_string);
-					for (var i = 0;i < yt_playlist.length;i++) {
-					var songInfo = await youtube.getVideo(yt_playlist[i].url);
-					let song = {
-						title: songInfo.title,
-						url: songInfo.url
-						};
-					serverQueue.songs.push(song);
-					console.log(serverQueue.songs);
-					}
-					message.channel.send(`${yt_playlist.length} Song playlist added to the queue!`)
-					return message.channel.send(`${serverQueue.songs.length} Song in queue!`);
-				}
-		  } else {
-			var songInfo = await ytdl.getInfo(args[1]);
-			let song = {
-			  title: songInfo.videoDetails.title,
-			  url: songInfo.videoDetails.video_url,
-			  source: 'youtube'
-			};
-			if (!serverQueue) {
-				queue.set(message.guild.id, queueContruct);
-				queueContruct.songs.push(song);
-				try {
-					var connection = await voiceChannel.join();
-					queueContruct.connection = connection;
-					play(message.guild, queueContruct.songs[0]);
-					console.log(queueContruct.songs);
-					
-				} catch (err) {
-					console.log(err);
-					queue.delete(message.guild.id);
-					return message.channel.send(err);
-				}
-				} else {
-				serverQueue.songs.push(song);
-				console.log(serverQueue.songs);
-				message.channel.send(`${song.title} added to the queue!`);
-				return message.channel.send(`${serverQueue.songs.length} Song in queue!`);
-				  }
-				}
-			
-		
+  if (!serverQueue) {
+    const queueContruct = {
+      textChannel: message.channel,
+      voiceChannel: voiceChannel,
+      connection: null,
+      songs: [],
+      volume: 5,
+      playing: true,
+    };
+    queue.set(message.guild.id, queueContruct);
+    queueContruct.songs.push(song);
+    try {
+      var connection = await voiceChannel.join();
+      queueContruct.connection = connection;
+      play(message.guild, queueContruct.songs[0]);
+    } catch (err) {
+      console.log(err);
+      queue.delete(message.guild.id);
+      return message.channel.send(err);
+    }
+  } else {
+    serverQueue.songs.push(song);
+    message.channel.send(`${song.title} added to the queue!`);
+    return message.channel.send(`${serverQueue.songs.length} song(s) in queue!`);
+  }
 	
 	
 }

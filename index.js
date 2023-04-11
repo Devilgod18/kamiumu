@@ -197,18 +197,6 @@ function skip(message, serverQueue) {
 
   
     serverQueue.connection.dispatcher.end();
-   if (song.source === 'soundcloud') {
-    serverQueue.dispatcher.end();
-	serverQueue.songs.shift();
-  }
-  
-  
-  if (serverQueue.songs.length > 0) {
-    play(message.guild, serverQueue.songs[0]);
-  } else {
-    message.guild.me.voice.channel.leave();
-    queue.delete(message.guild.id);
-  }
 	message.channel.send(`${serverQueue.songs.length} Song in queue!`);
 }
 

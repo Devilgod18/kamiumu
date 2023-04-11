@@ -193,15 +193,16 @@ async function execute(message, serverQueue) {
 function skip(message, serverQueue) {
 	if (!message.member.voice.channel) return message.channel.send('Ko trong k�nh');
 	if (!serverQueue) return message.channel.send('Ko co skip!');
-	if (!serverQueue.dispatcher&& !serverQueue.soundcloudDispatcher) return message.channel.send('There is no song currently playing!');
+	if (!serverQueue.dispatcher) return message.channel.send('There is no song currently playing!');
 
-  if (serverQueue.dispatcher) {
+  
     serverQueue.connection.dispatcher.end();
-  } else if (serverQueue.soundcloudDispatcher) {
-    serverQueue.soundcloudDispatcher.end();
+   if (song.source === 'soundcloud') {
+    serverQueue.dispatcher.end();
+	serverQueue.songs.shift();
   }
   
-  serverQueue.songs.shift();
+  
   if (serverQueue.songs.length > 0) {
     play(message.guild, serverQueue.songs[0]);
   } else {
@@ -216,12 +217,9 @@ function stop(message, serverQueue) {
 	if (!serverQueue) return message.channel.send('There is no song to stop!');
 	serverQueue.songs = [];
 
-	if (serverQueue.dispatcher) {
-		serverQueue.dispatcher.end();
-	  } else if (serverQueue.soundcloudDispatcher) {
-		serverQueue.soundcloudDispatcher.end();
-	  }
-	  message.guild.me.voice.channel.leave();
+	
+	serverQueue.dispatcher.end();
+	message.guild.me.voice.channel.leave();
 	queue.delete(message.guild.id);
 }
 
@@ -234,7 +232,7 @@ function play(guild, song) {
 		return;
 	}
 	let dispatcher;
-	let soundcloudDispatcher;
+	
 	if (song.source === 'youtube') {
 		dispatcher = serverQueue.connection
 		  .play(ytdl(song.url, { filter: 'audioonly', quality: 'highestaudio', highWaterMark: 1 << 25 }))
@@ -253,7 +251,7 @@ function play(guild, song) {
 		  serverQueue.dispatcher = dispatcher;
 		dispatcher.setVolumeLogarithmic(serverQueue.volume / 5);
 	  } else if (song.source === 'soundcloud') {
-		soundcloudDispatcher = serverQueue.connection
+		dispatcher = serverQueue.connection
 		  .play(song.url, { highWaterMark: 1 << 25 })
 		  .on('finish', () => {
 			console.log('Music ended!');
@@ -267,8 +265,8 @@ function play(guild, song) {
 		  .on('error', error => {
 			console.error(error);
 		  });
-		  serverQueue.soundcloudDispatcher = soundcloudDispatcher;
-    soundcloudDispatcher.setVolumeLogarithmic(serverQueue.volume / 5);
+		  serverQueue.dispatcher = dispatcher;
+		  dispatcher.setVolumeLogarithmic(serverQueue.volume / 5);
 	  }
 	
 	

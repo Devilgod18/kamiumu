@@ -199,7 +199,7 @@ function skip(message, serverQueue) {
     serverQueue.connection.dispatcher.end();
   } else if (serverQueue.soundcloudDispatcher) {
     serverQueue.soundcloudDispatcher.end();
-	play(guild, serverQueue.songs[0]);
+	play(message.guild, serverQueue.songs[0]);
   }
   
   serverQueue.songs.shift();

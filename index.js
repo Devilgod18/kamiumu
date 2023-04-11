@@ -200,15 +200,15 @@ function skip(message, serverQueue) {
 	
 	
 	
-	if (serverQueue.songs[0].source === "youtube") {
-		console.log(serverQueue.songs[0].source);
+	if (serverQueue.songs[1].source === "youtube") {
+		console.log(serverQueue.songs[1].source);
 		serverQueue.isPlayingSoundCloud = false;
 		serverQueue.connection.dispatcher.end();
 		play(message.guild, serverQueue.songs[0]);
 		
 	} else {
 		
-		serverQueue.shift();
+		serverQueue.songs.shift();
 
 	}
 	

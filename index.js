@@ -196,29 +196,28 @@ function skip(message, serverQueue) {
 	if (!serverQueue) return message.channel.send('Ko co skip!');
 	if (!serverQueue.dispatcher) return message.channel.send('There is no song currently playing!');
 	
-	const songs = serverQueue;
 	
-	if (songs.source === "youtube") {
+	
+	if (serverQueue[1].source === "youtube") {
 		serverQueue.isPlayingSoundCloud = false;
 		serverQueue.connection.dispatcher.end();
-		play(message.guild, songs[0]);
-		
-
+		play(message.guild, serverQueue[0]);
 		
 	} else {
-		songs.shift();
+		
+		serverQueue.shift();
 
 	}
 	
-	if (songs.length === 0) {
+	if (serverQueue.length === 0) {
 		serverQueue.connection.dispatcher.end();
 		message.guild.me.voice.channel.leave();
 		queue.delete(message.guild.id);
 	} else {
-		play(message.guild, songs[0]);
+		play(message.guild, serverQueue[0]);
 	}
 	
-	message.channel.send(`${songs.length + songs.length} song(s) in queue!`);
+	message.channel.send(`${serverQueue.length + serverQueue.length} song(s) in queue!`);
 }
 
 function stop(message, serverQueue) {
@@ -269,7 +268,7 @@ function play(guild, song) {
 				serverQueue.songs.push(serverQueue.songs.shift());
 			  }
 			serverQueue.isPlayingSoundCloud = false;
-			const nextSong = serverQueue.songs[0];
+			const nextSong = serverQueue.songs[1];
 			if (nextSong.source === "youtube") {
 			serverQueue.isPlayingSoundCloud = false;
 			  play(guild, nextSong);

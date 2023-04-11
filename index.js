@@ -159,8 +159,33 @@ async function execute(message, serverQueue) {
 function skip(message, serverQueue) {
 	if (!message.member.voice.channel) return message.channel.send('Ko trong k�nh');
 	if (!serverQueue) return message.channel.send('Ko co skip!');
+<<<<<<< Updated upstream
 	serverQueue.connection.dispatcher.end();
 	message.channel.send(`${serverQueue.songs.length} Song in queue!`);
+=======
+	if (!serverQueue.dispatcher) return message.channel.send('There is no song currently playing!');
+	
+	const { songs, isPlayingSoundCloud } = serverQueue;
+	
+	if (isPlayingSoundCloud) {
+		serverQueue.connection.dispatcher.end();
+		songs.shift();
+	} else {
+		serverQueue.isPlayingSoundCloud = false;
+		serverQueue.connection.dispatcher.end();
+		
+	}
+	
+	if (songs.length === 0) {
+		serverQueue.connection.dispatcher.end();
+		message.guild.me.voice.channel.leave();
+		queue.delete(message.guild.id);
+	} else {
+		play(message.guild, songs[0]);
+	}
+	
+	message.channel.send(`${songs.length + songs.length} song(s) in queue!`);
+>>>>>>> Stashed changes
 }
 
 function stop(message, serverQueue) {
@@ -178,11 +203,55 @@ function play(guild, song) {
 		return;
 	}
 
+<<<<<<< Updated upstream
 	const dispatcher = serverQueue.connection.play(ytdl(song.url,{filter: 'audioonly', quality: 'highestaudio',highWaterMark: 1<<25 },{highWaterMark: 1}))
 
 		.on("finish", () => {
 
 			console.log('Music ended!');
+=======
+	if (song.source === "youtube") {
+		dispatcher = serverQueue.connection
+		  .play(ytdl(song.url, { filter: "audioonly", quality: "highestaudio", highWaterMark: 1 << 25 }))
+		  .on("finish", () => {
+			console.log("Music ended!");
+			if (serverQueue.loop) {
+			  serverQueue.songs.push(serverQueue.songs.shift());
+			}
+			const nextSong = serverQueue.songs[0];
+			if (nextSong.source === "soundcloud") {
+			  serverQueue.isPlayingSoundCloud = true;
+			}
+			play(guild, nextSong);
+		  })
+		  .on("error", (error) => console.error(error));
+		serverQueue.dispatcher = dispatcher;
+		dispatcher.setVolumeLogarithmic(serverQueue.volume / 5);
+	  } else if (song.source === "soundcloud") {
+		console.log("Downloading SoundCloud song...");
+		dispatcher = serverQueue.connection
+		  .play(song.url, { highWaterMark: 1 << 25 })
+		  .on("finish", () => {
+			console.log("Music ended!");
+			if (serverQueue.loop) {
+			  serverQueue.songs.push(serverQueue.songs.shift());
+			}
+			serverQueue.isPlayingSoundCloud = false;
+			const nextSong = serverQueue.songs[0];
+			if (nextSong.source === "youtube") {
+			  play(guild, nextSong);
+			} else if (nextSong.source === "soundcloud") {
+			  serverQueue.isPlayingSoundCloud = true;
+			  play(guild, nextSong);
+			}
+		  })
+		  .on("error", (error) => console.error(error));
+		serverQueue.dispatcher = dispatcher;
+		dispatcher.setVolumeLogarithmic(serverQueue.volume / 5);
+	  }
+}
+	
+>>>>>>> Stashed changes
 
 			serverQueue.songs.shift();
 			play(guild, serverQueue.songs[0]);

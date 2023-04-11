@@ -200,8 +200,9 @@ function skip(message, serverQueue) {
 	
 	if (isPlayingSoundCloud) {
 		songs.shift();
-	} else {
 		serverQueue.isPlayingSoundCloud = false;
+	} else {
+		
 		serverQueue.connection.dispatcher.end();
 	}
 	
@@ -261,8 +262,8 @@ function play(guild, song) {
 		  .on("finish", () => {
 			console.log("Music ended!");
 			if (serverQueue.loop) {
-			  serverQueue.songs.push(serverQueue.songs.shift());
-			}
+				serverQueue.songs.push(serverQueue.songs.shift());
+			  }
 			serverQueue.isPlayingSoundCloud = false;
 			const nextSong = serverQueue.songs[0];
 			if (nextSong.source === "youtube") {

@@ -199,7 +199,9 @@ function skip(message, serverQueue) {
     serverQueue.connection.dispatcher.end();
   }  else if (serverQueue.soundcloudDispatcher) {
     serverQueue.soundcloudDispatcher.destroy();
-	play(message.guild, serverQueue.songs[0]);
+	if (serverQueue.songs[1] && serverQueue.songs[1].source === 'youtube') {
+		play(message.guild, serverQueue.songs[1]);
+	  }
   }
 	message.channel.send(`${serverQueue.songs.length} Song in queue!`);
 }

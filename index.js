@@ -65,45 +65,45 @@ async function execute(message, serverQueue) {
 			voiceChannel: voiceChannel,
 			connection: null,
 			songs: [],
-			soundcloudSongs:[],
 			volume: 5,
 			playing: true,
 			isPlayingSoundCloud: false
 		};
+		let song=null;
 		if (args[1].includes('soundcloud.com')) {
 			// Download SoundCloud track
 			const trackInfo = await scdl.getInfo(args[1], process.env.SOUNDCLOUD_CLIENT_ID);
 			const track = await scdl.downloadFormat(trackInfo.permalink_url, scdl.FORMATS.OPUS, process.env.SOUNDCLOUD_CLIENT_ID);
-			let song = {
+			song = {
 			  title: trackInfo.title,
 			  url: track,
 			  source: 'soundcloud'
 			};
 			if (!serverQueue) {
 			  queue.set(message.guild.id, queueContruct);
-			  queueContruct.soundcloudSongs.push(song);
+			  queueContruct.songs.push(song);
 			  queueContruct.isPlayingSoundCloud = true;
 			  try {
 				var connection = await voiceChannel.join();
 				queueContruct.connection = connection;
-				play(message.guild, queueContruct.soundcloudSongs[0]);
+				play(message.guild, queueContruct.songs[0]);
 			  } catch (err) {
 				console.log(err);
 				queue.delete(message.guild.id);
 				return message.channel.send(err);
 			  }
 			} else {
-			  serverQueue.soundcloudSongs.push(song);
-			  console.log(serverQueue.soundcloudSongs);
+			  serverQueue.songs.push(song);
+			  console.log(serverQueue.songs);
 			  queueContruct.isPlayingSoundCloud = true;
 			  message.channel.send(`${song.title} added to the queue!`);
-			  message.channel.send(`${serverQueue.songs.length} YouTube song(s) and ${serverQueue.soundcloudSongs.length} SoundCloud song(s) in queue!`);
+			  message.channel.send(`${serverQueue.songs.length} YouTube song(s) and ${serverQueue.songs.length} SoundCloud song(s) in queue!`);
 			}
 		  } else if (isPlaylist) {
 			if(!serverQueue){
 				var yt_playlist = await youtube.getPlaylist(search_string);
 				var songInfo = await youtube.getVideo(yt_playlist[0].url);
-				let song = {
+				 song = {
 						title: songInfo.title,
 						url: songInfo.url,
 						source: 'youtube'
@@ -139,7 +139,7 @@ async function execute(message, serverQueue) {
 				console.log(queueContruct.songs.length);
 				
 				message.channel.send(`${yt_playlist.length} Song playlist added to the queue!`);
-				message.channel.send(`${serverQueue.songs.length} YouTube song(s) and ${serverQueue.soundcloudSongs.length} SoundCloud song(s) in queue!`);
+				message.channel.send(`${serverQueue.songs.length} YouTube song(s) and ${serverQueue.songs.length} SoundCloud song(s) in queue!`);
 				}
 				
 				else{
@@ -154,11 +154,11 @@ async function execute(message, serverQueue) {
 					console.log(serverQueue.songs);
 					}
 					message.channel.send(`${yt_playlist.length} Song playlist added to the queue!`)
-					message.channel.send(`${serverQueue.songs.length} YouTube song(s) and ${serverQueue.soundcloudSongs.length} SoundCloud song(s) in queue!`);
+					message.channel.send(`${serverQueue.songs.length} YouTube song(s) and ${serverQueue.songs.length} SoundCloud song(s) in queue!`);
 				}
 		  } else {
 			var songInfo = await ytdl.getInfo(args[1]);
-			let song = {
+			 song = {
 			  title: songInfo.videoDetails.title,
 			  url: songInfo.videoDetails.video_url,
 			  source: 'youtube'
@@ -181,7 +181,7 @@ async function execute(message, serverQueue) {
 				serverQueue.songs.push(song);
 				console.log(serverQueue.songs);
 				message.channel.send(`${song.title} added to the queue!`);
-				message.channel.send(`${serverQueue.songs.length} YouTube song(s) and ${serverQueue.soundcloudSongs.length} SoundCloud song(s) in queue!`);
+				message.channel.send(`${serverQueue.songs.length} YouTube song(s) and ${serverQueue.songs.length} SoundCloud song(s) in queue!`);
 				  }
 				}
 			
@@ -196,23 +196,23 @@ function skip(message, serverQueue) {
 	if (!serverQueue) return message.channel.send('Ko co skip!');
 	if (!serverQueue.dispatcher) return message.channel.send('There is no song currently playing!');
 	
-	const { soundcloudSongs, songs, isPlayingSoundCloud } = serverQueue;
+	const { songs, isPlayingSoundCloud } = serverQueue;
 	
 	if (isPlayingSoundCloud) {
-		soundcloudSongs.shift();
+		songs.shift();
 	} else {
 		songs.shift();
 	}
 	
-	if (soundcloudSongs.length === 0 && songs.length === 0) {
+	if (songs.length === 0 && songs.length === 0) {
 		serverQueue.connection.dispatcher.end();
 		message.guild.me.voice.channel.leave();
 		queue.delete(message.guild.id);
 	} else {
-		play(message.guild, soundcloudSongs[0] || songs[0]);
+		play(message.guild, songs[0]);
 	}
 	
-	message.channel.send(`${songs.length + soundcloudSongs.length} song(s) in queue!`);
+	message.channel.send(`${songs.length + songs.length} song(s) in queue!`);
 }
 
 function stop(message, serverQueue) {
@@ -243,19 +243,13 @@ function play(guild, song) {
                 console.log('Music ended!');
                 if (serverQueue.loop) {
                     if (serverQueue.songs.length > 0) {
-                        play(guild, serverQueue.songs[0]);
-                        serverQueue.songs.push(serverQueue.songs.shift());
-                    } else if (serverQueue.soundcloudSongs.length > 0) {
-                        play(guild, serverQueue.soundcloudSongs[0]);
-                        serverQueue.soundcloudSongs.push(serverQueue.soundcloudSongs.shift());
+                        play(guild, serverQueue.songs.shift());
                     }
                 } else {
                     if (serverQueue.songs.length > 0) {
-                        play(guild, serverQueue.songs[0]);
-                        serverQueue.songs.shift();
-                    } else if (serverQueue.soundcloudSongs.length > 0) {
-                        play(guild, serverQueue.soundcloudSongs[0]);
-                        serverQueue.soundcloudSongs.shift();
+                        play(guild, serverQueue.songs.shift());
+                    } else {
+                        serverQueue.isPlaying = false;
                     }
                 }
             })
@@ -266,26 +260,20 @@ function play(guild, song) {
         dispatcher.setVolumeLogarithmic(serverQueue.volume / 5);
     } else if (song.source === 'soundcloud') {
         console.log('Downloading SoundCloud song...');
-         
+        
             dispatcher = serverQueue.connection
-                .play(song.url, { highWaterMark: 1 << 25})
+                .play(song.url, {highWaterMark: 1 << 25 })
                 .on('finish', () => {
                     console.log('Music ended!');
                     if (serverQueue.loop) {
-                        if (serverQueue.soundcloudSongs.length > 0) {
-                            play(guild, serverQueue.soundcloudSongs[0]);
-                            serverQueue.soundcloudSongs.push(serverQueue.soundcloudSongs.shift());
-                        } else if (serverQueue.songs.length > 0) {
-                            play(guild, serverQueue.songs[0]);
-                            serverQueue.songs.push(serverQueue.songs.shift());
+                        if (serverQueue.songs.length > 0) {
+                            play(guild, serverQueue.songs.shift());
                         }
                     } else {
-                        if (serverQueue.soundcloudSongs.length > 0) {
-                            play(guild, serverQueue.soundcloudSongs[0]);
-                            serverQueue.soundcloudSongs.shift();
-                        } else if (serverQueue.songs.length > 0) {
-                            play(guild, serverQueue.songs[0]);
-                            serverQueue.songs.shift();
+                        if (serverQueue.songs.length > 0) {
+                            play(guild, serverQueue.songs.shift());
+                        } else {
+                            serverQueue.isPlaying = false;
                         }
                     }
                 })
@@ -294,10 +282,12 @@ function play(guild, song) {
                 });
             serverQueue.dispatcher = dispatcher;
             dispatcher.setVolumeLogarithmic(serverQueue.volume / 5);
-        
+       
     }
-	
-	
+
+    serverQueue.isPlaying = true;
 }
+	
+
 
 client.login(token);

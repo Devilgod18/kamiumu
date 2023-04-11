@@ -207,9 +207,10 @@ function stop(message, serverQueue) {
 	if (!message.member.voice.channel) return message.channel.send('��o trong k�nh ko stop dc!');
 	serverQueue.songs = [];
 	serverQueue.connection.dispatcher.end();
-	if (serverQueue.songs[0].source === 'soundcloud'&&serverQueue.dispatcher) {
-		serverQueue.connection.dispatcher.destroy();
-		serverQueue.songs = [];
+	if (serverQueue.dispatcher) {
+		serverQueue.dispatcher.end();
+	  } else if (serverQueue.soundcloudDispatcher) {
+		serverQueue.soundcloudDispatcher.end();
 	  }
 }
 
@@ -239,35 +240,31 @@ function play(guild, song) {
 			console.error(error);
 		  });
 	  } else if (song.source === 'soundcloud') {
-		const nextSong = serverQueue.songs[1];
-		if (nextSong && nextSong.source === 'youtube') {
-		  // SoundCloud song ended, play next YouTube song in queue
-		  serverQueue.soundcloudDispatcher.destroy();
-		  serverQueue.songs.shift();
-		  play(guild, serverQueue.songs[0]);
-		} else {
-		  // Play next SoundCloud song in queue
-		  serverQueue.soundcloudDispatcher = serverQueue.connection
-			.play(song.url, { highWaterMark: 1 << 25 })
-			.on('finish', () => {
-			  console.log('Music ended!');
-			  if (serverQueue.loop) {
-				serverQueue.songs.push(serverQueue.songs.shift());
-			  } else {
-				serverQueue.songs.shift();
-			  }
-			  play(guild, serverQueue.songs[0]);
-			})
-			.on('error', error => {
-			  console.error(error);
-			});
-		}
+		soundcloudDispatcher = serverQueue.connection
+		  .play(song.url, { highWaterMark: 1 << 25 })
+		  .on('finish', () => {
+			console.log('Music ended!');
+			if (serverQueue.loop) {
+			  serverQueue.songs.push(serverQueue.songs.shift());
+			} else {
+			  serverQueue.songs.shift();
+			}
+			play(guild, serverQueue.songs[0]);
+		  })
+		  .on('error', error => {
+			console.error(error);
+		  });
 	  }
-
-  if (dispatcher) {
-    serverQueue.dispatcher = dispatcher;
-    dispatcher.setVolumeLogarithmic(serverQueue.volume / 5);
-  }
+	
+	  if (dispatcher) {
+		serverQueue.dispatcher = dispatcher;
+		dispatcher.setVolumeLogarithmic(serverQueue.volume / 5);
+	  }
+	
+	  if (soundcloudDispatcher) {
+		serverQueue.soundcloudDispatcher = soundcloudDispatcher;
+		soundcloudDispatcher.setVolumeLogarithmic(serverQueue.volume / 5);
+	  }
 }
 
 client.login(token);

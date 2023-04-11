@@ -199,11 +199,47 @@ function skip(message, serverQueue) {
     serverQueue.connection.dispatcher.end();
   } else if (serverQueue.soundcloudDispatcher) {
     serverQueue.soundcloudDispatcher.end();
+	play(guild, serverQueue.songs[0]);
   }
   
   serverQueue.songs.shift();
   if (serverQueue.songs.length > 0) {
-    play(message.guild, serverQueue.songs[0]);
+    const song = serverQueue.songs[0];
+    if (song.source === 'youtube') {
+      const dispatcher = serverQueue.connection
+        .play(ytdl(song.url, { filter: 'audioonly', quality: 'highestaudio', highWaterMark: 1 << 25 }))
+        .on('finish', () => {
+          console.log('Music ended!');
+          if (serverQueue.loop) {
+            serverQueue.songs.push(serverQueue.songs.shift());
+          } else {
+            serverQueue.songs.shift();
+          }
+          play(message.guild, serverQueue.songs[0]);
+        })
+        .on('error', error => {
+          console.error(error);
+        });
+      serverQueue.dispatcher = dispatcher;
+      dispatcher.setVolumeLogarithmic(serverQueue.volume / 5);
+    } else if (song.source === 'soundcloud') {
+      const soundcloudDispatcher = serverQueue.connection
+        .play(song.url, { highWaterMark: 1 << 25 })
+        .on('finish', () => {
+          console.log('Music ended!');
+          if (serverQueue.loop) {
+            serverQueue.songs.push(serverQueue.songs.shift());
+          } else {
+            serverQueue.songs.shift();
+          }
+          play(message.guild, serverQueue.songs[0]);
+        })
+        .on('error', error => {
+          console.error(error);
+        });
+      serverQueue.soundcloudDispatcher = soundcloudDispatcher;
+      soundcloudDispatcher.setVolumeLogarithmic(serverQueue.volume / 5);
+    }
   } else {
     message.guild.me.voice.channel.leave();
     queue.delete(message.guild.id);
@@ -219,7 +255,7 @@ function stop(message, serverQueue) {
 	if (serverQueue.dispatcher) {
 		serverQueue.dispatcher.end();
 	  } else if (serverQueue.soundcloudDispatcher) {
-		serverQueue.soundcloudDispatcher.destroy();
+		serverQueue.soundcloudDispatcher.end();
 	  }
 }
 
@@ -258,7 +294,12 @@ function play(guild, song) {
 			} else {
 			  serverQueue.songs.shift();
 			}
-			play(guild, serverQueue.songs[0]);
+			if (serverQueue.songs.length > 0) {
+				play(guild, serverQueue.songs[0]);
+			  } else {
+				serverQueue.voiceChannel.leave();
+				queue.delete(guild.id);
+			  }
 		  })
 		  .on('error', error => {
 			console.error(error);

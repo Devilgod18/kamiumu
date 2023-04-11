@@ -196,17 +196,18 @@ function skip(message, serverQueue) {
 	if (!serverQueue) return message.channel.send('Ko co skip!');
 	if (!serverQueue.dispatcher) return message.channel.send('There is no song currently playing!');
 	
-	const { songs, isPlayingSoundCloud } = serverQueue;
+	const songs = serverQueue;
 	
-	if (isPlayingSoundCloud) {
-		songs.shift();
+	if (songs.source === "youtube") {
+		serverQueue.isPlayingSoundCloud = false;
+		serverQueue.connection.dispatcher.end();
+		play(message.guild, songs[0]);
+		
+
 		
 	} else {
-		serverQueue.isPlayingSoundCloud = false;
-		if (serverQueue.connection) {
-		  serverQueue.connection.dispatcher.destroy();
-		  play(message.guild, songs[0]);
-		}
+		songs.shift();
+
 	}
 	
 	if (songs.length === 0) {

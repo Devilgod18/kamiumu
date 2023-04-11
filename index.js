@@ -248,14 +248,13 @@ function play(guild, song) {
 		  .play(ytdl(song.url, { filter: "audioonly", quality: "highestaudio", highWaterMark: 1 << 25 }))
 		  .on("finish", () => {
 			console.log("Music ended!");
-			if (serverQueue.loop) {
-			  serverQueue.songs.push(serverQueue.songs.shift());
-			}
+			serverQueue.songs.shift();
 			const nextSong = serverQueue.songs[0];
 			if (nextSong.source === "soundcloud") {
 			  serverQueue.isPlayingSoundCloud = true;
+			  play(guild, nextSong);
 			}
-			play(guild, nextSong);
+			
 		  })
 		  .on("error", (error) => console.error(error));
 		serverQueue.dispatcher = dispatcher;
@@ -266,9 +265,7 @@ function play(guild, song) {
 		  .play(song.url, { highWaterMark: 1 << 25 })
 		  .on("finish", () => {
 			console.log("Music ended!");
-			if (serverQueue.loop) {
-				serverQueue.songs.push(serverQueue.songs.shift());
-			  }
+			
 			serverQueue.isPlayingSoundCloud = false;
 			const nextSong = serverQueue.songs[0];
 			if (nextSong && nextSong.source === "youtube") {
@@ -282,20 +279,7 @@ function play(guild, song) {
 		  .on("error", (error) => console.error(error));
 		serverQueue.dispatcher = dispatcher;
 		dispatcher.setVolumeLogarithmic(serverQueue.volume / 5);
-		if (!serverQueue.isPlayingSoundCloud && serverQueue.songs.length > 1 && serverQueue.songs[1].source === "youtube") {
-		  ytdl.getInfo(serverQueue.songs[1].url)
-			.then(info => {
-			  serverQueue.songs[1].title = info.videoDetails.title;
-			  serverQueue.songs[1].url = info.videoDetails.video_url;
-			  serverQueue.songs[1].thumbnail = info.videoDetails.thumbnails[0].url;
-			})
-			.catch(error => {
-			  console.error(error);
-			  serverQueue.songs[1].title = "Unknown title";
-			  serverQueue.songs[1].url = "";
-			  serverQueue.songs[1].thumbnail = "";
-			});
-		}
+		
 	  }
 }
 	

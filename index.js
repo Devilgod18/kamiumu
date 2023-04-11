@@ -134,7 +134,7 @@ async function execute(message, serverQueue) {
 					
 							
 				}
-				
+				queueContruct.isPlayingSoundCloud = false;
 				console.log(queueContruct.songs);
 				console.log(queueContruct.songs.length);
 				
@@ -152,6 +152,7 @@ async function execute(message, serverQueue) {
 						};
 					serverQueue.songs.push(song);
 					console.log(serverQueue.songs);
+					queueContruct.isPlayingSoundCloud = false;
 					}
 					message.channel.send(`${yt_playlist.length} Song playlist added to the queue!`)
 					message.channel.send(`${serverQueue.songs.length} song(s) in queue!`);
@@ -180,6 +181,7 @@ async function execute(message, serverQueue) {
 				} else {
 				serverQueue.songs.push(song);
 				console.log(serverQueue.songs);
+				queueContruct.isPlayingSoundCloud = false;
 				message.channel.send(`${song.title} added to the queue!`);
 				message.channel.send(`${serverQueue.songs.length} song(s) in queue!`);
 				  }

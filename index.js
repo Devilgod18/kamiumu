@@ -197,9 +197,8 @@ function skip(message, serverQueue) {
 
   if (serverQueue.songs[0].source === 'youtube') {
     serverQueue.connection.dispatcher.end();
-  } else if (serverQueue.songs[0].source === 'soundcloud'&&serverQueue.dispatcher) {
-	serverQueue.connection.dispatcher.destroy();
-	serverQueue.songs.shift();
+  }  else if (serverQueue.songs[0].source === 'soundcloud' && serverQueue.soundcloudDispatcher) {
+    serverQueue.soundcloudDispatcher.end();
   }
 	message.channel.send(`${serverQueue.songs.length} Song in queue!`);
 }
@@ -241,30 +240,28 @@ function play(guild, song) {
 		  });
 	  } else if (song.source === 'soundcloud') {
 		const nextSong = serverQueue.songs[1];
-    if (nextSong && nextSong.source === 'youtube') {
-      // SoundCloud song ended, play next YouTube song in queue
-	  serverQueue.connection.dispatcher.destroy();
-      serverQueue.songs.shift();
-      play(guild, serverQueue.songs[0]);
-    } else {
-      // Play next SoundCloud song in queue
-      dispatcher = serverQueue.connection
-        .play(song.url, { highWaterMark: 1 << 25 })
-        .on('finish', () => {
-          console.log('Music ended!');
-		  
-          if (serverQueue.loop) {
-            serverQueue.songs.push(serverQueue.songs.shift());
-          } else {
-            serverQueue.songs.shift();
-			
-          }
-          play(guild, serverQueue.songs[0]);
-        })
-        .on('error', error => {
-          console.error(error);
-        });
-	  }
+		if (nextSong && nextSong.source === 'youtube') {
+		  // SoundCloud song ended, play next YouTube song in queue
+		  serverQueue.soundcloudDispatcher.destroy();
+		  serverQueue.songs.shift();
+		  play(guild, serverQueue.songs[0]);
+		} else {
+		  // Play next SoundCloud song in queue
+		  serverQueue.soundcloudDispatcher = serverQueue.connection
+			.play(song.url, { highWaterMark: 1 << 25 })
+			.on('finish', () => {
+			  console.log('Music ended!');
+			  if (serverQueue.loop) {
+				serverQueue.songs.push(serverQueue.songs.shift());
+			  } else {
+				serverQueue.songs.shift();
+			  }
+			  play(guild, serverQueue.songs[0]);
+			})
+			.on('error', error => {
+			  console.error(error);
+			});
+		}
 	  }
 
   if (dispatcher) {

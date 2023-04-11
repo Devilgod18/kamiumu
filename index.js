@@ -204,7 +204,6 @@ function skip(message, serverQueue) {
 		console.log(serverQueue.songs[1].source);
 		serverQueue.isPlayingSoundCloud = false;
 		serverQueue.connection.dispatcher.end();
-		play(message.guild, serverQueue.songs[0]);
 		
 	} else {
 		
@@ -220,7 +219,7 @@ function skip(message, serverQueue) {
 		play(message.guild, serverQueue.songs[0]);
 	}
 	
-	message.channel.send(`${serverQueue.length + serverQueue.length} song(s) in queue!`);
+	message.channel.send(`${serverQueue.songs.length} song(s) in queue!`);
 }
 
 function stop(message, serverQueue) {

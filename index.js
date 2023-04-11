@@ -249,15 +249,17 @@ function play(guild, song) {
 			  serverQueue.songs.push(serverQueue.songs.shift());
 			}
 			const nextSong = serverQueue.songs[0];
-			if (nextSong.source === "soundcloud") {
-			  serverQueue.isPlayingSoundCloud = true;
+			if (nextSong) {
+				play(guild, nextSong);
+			} else {
+				serverQueue.voiceChannel.leave();
+				queue.delete(guild.id);
 			}
-			play(guild, nextSong);
 		  })
 		  .on("error", (error) => console.error(error));
 		serverQueue.dispatcher = dispatcher;
 		dispatcher.setVolumeLogarithmic(serverQueue.volume / 5);
-	  } else if (song.source === "soundcloud") {
+	} else if (song.source === "soundcloud") {
 		console.log("Downloading SoundCloud song...");
 		dispatcher = serverQueue.connection
 		  .play(song.url, { highWaterMark: 1 << 25 })
@@ -265,20 +267,23 @@ function play(guild, song) {
 			console.log("Music ended!");
 			if (serverQueue.loop) {
 				serverQueue.songs.push(serverQueue.songs.shift());
-			  }
+			}
 			serverQueue.isPlayingSoundCloud = false;
 			const nextSong = serverQueue.songs[0];
-			if (nextSong.source === "youtube") {
-			  play(guild, nextSong);
-			} else if (nextSong.source === "soundcloud") {
-			  serverQueue.isPlayingSoundCloud = true;
-			  play(guild, nextSong);
+			if (nextSong && nextSong.source === "youtube") {
+				play(guild, nextSong);
+			} else if (nextSong && nextSong.source === "soundcloud") {
+				serverQueue.isPlayingSoundCloud = true;
+				play(guild, nextSong);
+			} else {
+				serverQueue.voiceChannel.leave();
+				queue.delete(guild.id);
 			}
 		  })
 		  .on("error", (error) => console.error(error));
 		serverQueue.dispatcher = dispatcher;
 		dispatcher.setVolumeLogarithmic(serverQueue.volume / 5);
-	  }
+	}
 }
 	
 

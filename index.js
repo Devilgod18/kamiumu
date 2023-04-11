@@ -197,11 +197,16 @@ function skip(message, serverQueue) {
 
   if (serverQueue.dispatcher) {
     serverQueue.connection.dispatcher.end();
-  }  else if (serverQueue.soundcloudDispatcher) {
-    serverQueue.soundcloudDispatcher.destroy();
-	if (serverQueue.songs[1] && serverQueue.songs[1].source === 'youtube') {
-		play(message.guild, serverQueue.songs[1]);
-	  }
+  } else if (serverQueue.soundcloudDispatcher) {
+    serverQueue.soundcloudDispatcher.end();
+  }
+  
+  serverQueue.songs.shift();
+  if (serverQueue.songs.length > 0) {
+    play(message.guild, serverQueue.songs[0]);
+  } else {
+    message.guild.me.voice.channel.leave();
+    queue.delete(message.guild.id);
   }
 	message.channel.send(`${serverQueue.songs.length} Song in queue!`);
 }

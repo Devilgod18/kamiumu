@@ -198,7 +198,6 @@ function skip(message, serverQueue) {
   if (serverQueue.songs[0].source === 'youtube') {
     serverQueue.connection.dispatcher.end();
   } else if (serverQueue.songs[0].source === 'soundcloud'&&serverQueue.dispatcher) {
-    serverQueue.dispatcher.destroy();
 	serverQueue.songs.shift();
   }
 	message.channel.send(`${serverQueue.songs.length} Song in queue!`);

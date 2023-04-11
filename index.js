@@ -200,15 +200,6 @@ function skip(message, serverQueue) {
   } else if (serverQueue.songs[0].source === 'soundcloud'&&serverQueue.dispatcher) {
     serverQueue.dispatcher.destroy();
 	serverQueue.songs.shift();
-	
-	const nextSong = serverQueue.songs[1];
-        if (nextSong && nextSong.source === 'youtube') {
-          // The next song is a YouTube song, start playing it
-          play(guild, nextSong);
-        } else {
-          // The next song is another SoundCloud song, start playing it
-          play(message.guild, serverQueue.songs[0]);
-        }
   }
 	message.channel.send(`${serverQueue.songs.length} Song in queue!`);
 }
@@ -218,7 +209,7 @@ function stop(message, serverQueue) {
 	serverQueue.songs = [];
 	serverQueue.connection.dispatcher.end();
 	if (serverQueue.songs[0].source === 'soundcloud'&&serverQueue.dispatcher) {
-		serverQueue.dispatcher.destroy();
+		serverQueue.connection.dispatcher.destroy();
 		serverQueue.songs = [];
 	  }
 }
@@ -252,6 +243,7 @@ function play(guild, song) {
 		const nextSong = serverQueue.songs[1];
     if (nextSong && nextSong.source === 'youtube') {
       // SoundCloud song ended, play next YouTube song in queue
+	  serverQueue.connection.dispatcher.destroy();
       serverQueue.songs.shift();
       play(guild, serverQueue.songs[0]);
     } else {

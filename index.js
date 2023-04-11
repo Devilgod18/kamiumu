@@ -221,26 +221,29 @@ function play(guild, song) {
 		return;
 	}
 	let dispatcher;
-	
-	if (song.source === 'youtube') {
+
+    if (song.source === 'youtube') {
         dispatcher = serverQueue.connection
             .play(ytdl(song.url, { filter: 'audioonly', quality: 'highestaudio', highWaterMark: 1 << 25 }))
             .on('finish', () => {
                 console.log('Music ended!');
                 if (serverQueue.loop) {
                     if (serverQueue.songs.length > 0) {
+                        play(guild, serverQueue.songs[0]);
                         serverQueue.songs.push(serverQueue.songs.shift());
                     } else if (serverQueue.soundcloudSongs.length > 0) {
+                        play(guild, serverQueue.soundcloudSongs[0]);
                         serverQueue.soundcloudSongs.push(serverQueue.soundcloudSongs.shift());
                     }
                 } else {
                     if (serverQueue.songs.length > 0) {
+                        play(guild, serverQueue.songs[0]);
                         serverQueue.songs.shift();
                     } else if (serverQueue.soundcloudSongs.length > 0) {
+                        play(guild, serverQueue.soundcloudSongs[0]);
                         serverQueue.soundcloudSongs.shift();
                     }
                 }
-                play(guild, serverQueue.songs[0] || serverQueue.soundcloudSongs[0]);
             })
             .on('error', error => {
                 console.error(error);
@@ -248,31 +251,37 @@ function play(guild, song) {
         serverQueue.dispatcher = dispatcher;
         dispatcher.setVolumeLogarithmic(serverQueue.volume / 5);
     } else if (song.source === 'soundcloud') {
-        dispatcher = serverQueue.connection
-            .play(song.url, { highWaterMark: 1 << 25 })
-            .on('finish', () => {
-                console.log('Music ended!');
-                if (serverQueue.loop) {
-                    if (serverQueue.soundcloudSongs.length > 0) {
-                        serverQueue.soundcloudSongs.push(serverQueue.soundcloudSongs.shift());
-                    } else if (serverQueue.songs.length > 0) {
-                        serverQueue.songs.push(serverQueue.songs.shift());
+        console.log('Downloading SoundCloud song...');
+         
+            dispatcher = serverQueue.connection
+                .play(song.url)
+                .on('finish', () => {
+                    console.log('Music ended!');
+                    if (serverQueue.loop) {
+                        if (serverQueue.soundcloudSongs.length > 0) {
+                            play(guild, serverQueue.soundcloudSongs[0]);
+                            serverQueue.soundcloudSongs.push(serverQueue.soundcloudSongs.shift());
+                        } else if (serverQueue.songs.length > 0) {
+                            play(guild, serverQueue.songs[0]);
+                            serverQueue.songs.push(serverQueue.songs.shift());
+                        }
+                    } else {
+                        if (serverQueue.soundcloudSongs.length > 0) {
+                            play(guild, serverQueue.soundcloudSongs[0]);
+                            serverQueue.soundcloudSongs.shift();
+                        } else if (serverQueue.songs.length > 0) {
+                            play(guild, serverQueue.songs[0]);
+                            serverQueue.songs.shift();
+                        }
                     }
-                } else {
-                    if (serverQueue.soundcloudSongs.length > 0) {
-                        serverQueue.soundcloudSongs.shift();
-                    } else if (serverQueue.songs.length > 0) {
-                        serverQueue.songs.shift();
-                    }
-                }
-                play(guild, serverQueue.songs[0] || serverQueue.soundcloudSongs[0]);
-            })
-            .on('error', error => {
-                console.error(error);
-            });
-        serverQueue.dispatcher = dispatcher;
-        dispatcher.setVolumeLogarithmic(serverQueue.volume / 5);
-	  }
+                })
+                .on('error', error => {
+                    console.error(error);
+                });
+            serverQueue.dispatcher = dispatcher;
+            dispatcher.setVolumeLogarithmic(serverQueue.volume / 5);
+        
+    }
 	
 	
 }

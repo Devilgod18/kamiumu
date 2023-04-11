@@ -222,7 +222,7 @@ function play(guild, song) {
 		return;
 	}
 	let dispatcher;
-	
+	let soundcloudDispatcher;
 	if (song.source === 'youtube') {
 		dispatcher = serverQueue.connection
 		  .play(ytdl(song.url, { filter: 'audioonly', quality: 'highestaudio', highWaterMark: 1 << 25 }))

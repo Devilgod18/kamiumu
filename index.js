@@ -197,28 +197,7 @@ function skip(message, serverQueue) {
 	if (!message.member.voice.channel) return message.channel.send('Ko trong kênh');
 	if (!serverQueue) return message.channel.send('Ko co skip!');
 	if (!serverQueue.dispatcher) return message.channel.send('There is no song currently playing!');
-	
-	
-	
-	if (serverQueue.songs[1].source === "youtube") {
-		console.log(serverQueue.songs[1].source);
-		serverQueue.isPlayingSoundCloud = false;
-		serverQueue.connection.dispatcher.end();
-		
-	} else {
-		
-		serverQueue.songs.shift();
-
-	}
-	
-	if (serverQueue.length === 0) {
-		serverQueue.connection.dispatcher.end();
-		message.guild.me.voice.channel.leave();
-		queue.delete(message.guild.id);
-	} else {
-		play(message.guild, serverQueue.songs[0]);
-	}
-	
+	serverQueue.connection.dispatcher.end();
 	message.channel.send(`${serverQueue.songs.length} song(s) in queue!`);
 }
 

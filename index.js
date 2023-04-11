@@ -198,7 +198,8 @@ function skip(message, serverQueue) {
 	
 	
 	
-	if (serverQueue[1].source === "youtube") {
+	if (serverQueue[0].source === "youtube") {
+		console.log(serverQueue[0].source);
 		serverQueue.isPlayingSoundCloud = false;
 		serverQueue.connection.dispatcher.end();
 		play(message.guild, serverQueue[0]);
@@ -268,11 +269,11 @@ function play(guild, song) {
 				serverQueue.songs.push(serverQueue.songs.shift());
 			  }
 			serverQueue.isPlayingSoundCloud = false;
-			const nextSong = serverQueue.songs[1];
-			if (nextSong.source === "youtube") {
-			serverQueue.isPlayingSoundCloud = false;
+			const nextSong = serverQueue.songs[0];
+			if (nextSong && nextSong.source === "youtube") {
+			  serverQueue.isPlayingSoundCloud = false;
 			  play(guild, nextSong);
-			} else if (nextSong.source === "soundcloud") {
+			} else if (nextSong && nextSong.source === "soundcloud") {
 			  serverQueue.isPlayingSoundCloud = true;
 			  play(guild, nextSong);
 			}
@@ -280,6 +281,20 @@ function play(guild, song) {
 		  .on("error", (error) => console.error(error));
 		serverQueue.dispatcher = dispatcher;
 		dispatcher.setVolumeLogarithmic(serverQueue.volume / 5);
+		if (!serverQueue.isPlayingSoundCloud && serverQueue.songs.length > 1 && serverQueue.songs[1].source === "youtube") {
+		  ytdl.getInfo(serverQueue.songs[1].url)
+			.then(info => {
+			  serverQueue.songs[1].title = info.videoDetails.title;
+			  serverQueue.songs[1].url = info.videoDetails.video_url;
+			  serverQueue.songs[1].thumbnail = info.videoDetails.thumbnails[0].url;
+			})
+			.catch(error => {
+			  console.error(error);
+			  serverQueue.songs[1].title = "Unknown title";
+			  serverQueue.songs[1].url = "";
+			  serverQueue.songs[1].thumbnail = "";
+			});
+		}
 	  }
 }
 	

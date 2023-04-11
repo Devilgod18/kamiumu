@@ -248,6 +248,7 @@ function play(guild, song) {
 			if (serverQueue.loop) {
 			  serverQueue.songs.push(serverQueue.songs.shift());
 			}
+			serverQueue.songs.shift();
 			const nextSong = serverQueue.songs[0];
 			if (nextSong) {
 				play(guild, nextSong);
@@ -271,6 +272,7 @@ function play(guild, song) {
 			serverQueue.isPlayingSoundCloud = false;
 			const nextSong = serverQueue.songs[0];
 			if (nextSong && nextSong.source === "youtube") {
+				serverQueue.songs.shift();
 				play(guild, nextSong);
 			} else if (nextSong && nextSong.source === "soundcloud") {
 				serverQueue.isPlayingSoundCloud = true;

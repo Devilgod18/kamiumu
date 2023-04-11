@@ -201,7 +201,7 @@ function skip(message, serverQueue) {
 	if (isPlayingSoundCloud) {
 		songs.shift();
 	} else {
-		songs.shift();
+		songs.splice(0, 1);
 	}
 	
 	if (songs.length === 0 && songs.length === 0) {

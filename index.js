@@ -200,10 +200,12 @@ function skip(message, serverQueue) {
 	
 	if (isPlayingSoundCloud) {
 		songs.shift();
-		serverQueue.isPlayingSoundCloud = false;
-	} else {
 		
-		serverQueue.connection.dispatcher.end();
+	} else {
+		serverQueue.isPlayingSoundCloud = false;
+		if (serverQueue.connection) {
+		  serverQueue.connection.dispatcher.end();
+		}
 	}
 	
 	if (songs.length === 0) {
@@ -267,6 +269,7 @@ function play(guild, song) {
 			serverQueue.isPlayingSoundCloud = false;
 			const nextSong = serverQueue.songs[0];
 			if (nextSong.source === "youtube") {
+			serverQueue.isPlayingSoundCloud = false;
 			  play(guild, nextSong);
 			} else if (nextSong.source === "soundcloud") {
 			  serverQueue.isPlayingSoundCloud = true;

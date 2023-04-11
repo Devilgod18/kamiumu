@@ -193,7 +193,7 @@ async function execute(message, serverQueue) {
 function skip(message, serverQueue) {
 	if (!message.member.voice.channel) return message.channel.send('Ko trong k�nh');
 	if (!serverQueue) return message.channel.send('Ko co skip!');
-	if (!serverQueue.dispatcher) return message.channel.send('There is no song currently playing!');
+	if (!serverQueue.dispatcher&& !serverQueue.soundcloudDispatcher) return message.channel.send('There is no song currently playing!');
 
   if (serverQueue.songs[0].source === 'youtube') {
     serverQueue.connection.dispatcher.end();
@@ -205,8 +205,9 @@ function skip(message, serverQueue) {
 
 function stop(message, serverQueue) {
 	if (!message.member.voice.channel) return message.channel.send('��o trong k�nh ko stop dc!');
+	if (!serverQueue) return message.channel.send('There is no song to stop!');
 	serverQueue.songs = [];
-	serverQueue.connection.dispatcher.end();
+
 	if (serverQueue.dispatcher) {
 		serverQueue.dispatcher.end();
 	  } else if (serverQueue.soundcloudDispatcher) {

@@ -199,6 +199,7 @@ function skip(message, serverQueue) {
     serverQueue.connection.dispatcher.end();
   }  else if (serverQueue.soundcloudDispatcher) {
     serverQueue.soundcloudDispatcher.destroy();
+	play(message.guild, serverQueue.songs[0]);
   }
 	message.channel.send(`${serverQueue.songs.length} Song in queue!`);
 }

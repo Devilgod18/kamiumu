@@ -216,7 +216,7 @@ function skip(message, serverQueue) {
 		play(message.guild, songs[0]);
 	}
 	
-	message.channel.send(`${songs.length + songs.length} song(s) in queue!`);
+	message.channel.send(`${songs.length} song(s) in queue!`);
 }
 
 function stop(message, serverQueue) {

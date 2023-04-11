@@ -198,9 +198,8 @@ function skip(message, serverQueue) {
   if (serverQueue.songs[0].source === 'youtube') {
     serverQueue.connection.dispatcher.end();
   } else if (serverQueue.songs[0].source === 'soundcloud'&&serverQueue.dispatcher) {
-	serverQueue.dispatcher.stop();
-    serverQueue.songs.shift();
-    play(message.guild, serverQueue.songs[0]);
+	serverQueue.connection.dispatcher.destroy();
+	serverQueue.songs.shift();
   }
 	message.channel.send(`${serverQueue.songs.length} Song in queue!`);
 }
@@ -258,8 +257,7 @@ function play(guild, song) {
             serverQueue.songs.push(serverQueue.songs.shift());
           } else {
             serverQueue.songs.shift();
-			serverQueue.dispatcher = null;
-			serverQueue.songs.shift();
+			
           }
           play(guild, serverQueue.songs[0]);
         })

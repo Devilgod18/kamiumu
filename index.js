@@ -201,6 +201,7 @@ function skip(message, serverQueue) {
 	if (isPlayingSoundCloud) {
 		songs.shift();
 	} else {
+		serverQueue.isPlayingSoundCloud = false;
 		serverQueue.connection.dispatcher.end();
 	}
 	

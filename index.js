@@ -204,7 +204,8 @@ function skip(message, serverQueue) {
 	} else {
 		serverQueue.isPlayingSoundCloud = false;
 		if (serverQueue.connection) {
-		  serverQueue.connection.dispatcher.end();
+		  serverQueue.connection.dispatcher.destroy();
+		  play(message.guild, songs[0]);
 		}
 	}
 	

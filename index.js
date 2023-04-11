@@ -191,61 +191,62 @@ async function execute(message, serverQueue) {
 
  
 function skip(message, serverQueue) {
-	if (!message.member.voice.channel) return message.channel.send('Ko trong k�nh');
+	if (!message.member.voice.channel) return message.channel.send('Ko trong kênh');
 	if (!serverQueue) return message.channel.send('Ko co skip!');
-	if (!serverQueue.dispatcher&& !serverQueue.soundcloudDispatcher) return message.channel.send('There is no song currently playing!');
-
-  if (serverQueue.dispatcher) {
-    serverQueue.connection.dispatcher.end();
-  } else if (serverQueue.soundcloudDispatcher) {
-    serverQueue.soundcloudDispatcher.end();
-	play(message.guild, serverQueue.songs[0]);
-  }
+	if (!serverQueue.dispatcher && !serverQueue.soundcloudDispatcher) return message.channel.send('There is no song currently playing!');
   
-  serverQueue.songs.shift();
-  if (serverQueue.songs.length > 0) {
-    const song = serverQueue.songs[0];
-    if (song.source === 'youtube') {
-      const dispatcher = serverQueue.connection
-        .play(ytdl(song.url, { filter: 'audioonly', quality: 'highestaudio', highWaterMark: 1 << 25 }))
-        .on('finish', () => {
-          console.log('Music ended!');
-          if (serverQueue.loop) {
-            serverQueue.songs.push(serverQueue.songs.shift());
-          } else {
-            serverQueue.songs.shift();
-          }
-          play(message.guild, serverQueue.songs[0]);
-        })
-        .on('error', error => {
-          console.error(error);
-        });
-      serverQueue.dispatcher = dispatcher;
-      dispatcher.setVolumeLogarithmic(serverQueue.volume / 5);
-    } else if (song.source === 'soundcloud') {
-      const soundcloudDispatcher = serverQueue.connection
-        .play(song.url, { highWaterMark: 1 << 25 })
-        .on('finish', () => {
-          console.log('Music ended!');
-          if (serverQueue.loop) {
-            serverQueue.songs.push(serverQueue.songs.shift());
-          } else {
-            serverQueue.songs.shift();
-          }
-          play(message.guild, serverQueue.songs[0]);
-        })
-        .on('error', error => {
-          console.error(error);
-        });
-      serverQueue.soundcloudDispatcher = soundcloudDispatcher;
-      soundcloudDispatcher.setVolumeLogarithmic(serverQueue.volume / 5);
-    }
-  } else {
-    message.guild.me.voice.channel.leave();
-    queue.delete(message.guild.id);
+	if (serverQueue.dispatcher) {
+	  serverQueue.connection.dispatcher.end();
+	} else if (serverQueue.soundcloudDispatcher) {
+	  serverQueue.soundcloudDispatcher.end();
+	  serverQueue.soundcloudDispatcher.on('finish', () => {
+		console.log('Music ended!');
+		serverQueue.songs.shift();
+		if (serverQueue.songs.length > 0) {
+		  const song = serverQueue.songs[0];
+		  if (song.source === 'youtube') {
+			const dispatcher = serverQueue.connection
+			  .play(ytdl(song.url, { filter: 'audioonly', quality: 'highestaudio', highWaterMark: 1 << 25 }))
+			  .on('finish', () => {
+				console.log('Music ended!');
+				if (serverQueue.loop) {
+				  serverQueue.songs.push(serverQueue.songs.shift());
+				} else {
+				  serverQueue.songs.shift();
+				}
+				play(message.guild, serverQueue.songs[0]);
+			  })
+			  .on('error', error => {
+				console.error(error);
+			  });
+			serverQueue.dispatcher = dispatcher;
+			dispatcher.setVolumeLogarithmic(serverQueue.volume / 5);
+		  } else if (song.source === 'soundcloud') {
+			const soundcloudDispatcher = serverQueue.connection
+			  .play(song.url, { highWaterMark: 1 << 25 })
+			  .on('finish', () => {
+				console.log('Music ended!');
+				if (serverQueue.loop) {
+				  serverQueue.songs.push(serverQueue.songs.shift());
+				} else {
+				  serverQueue.songs.shift();
+				}
+				play(message.guild, serverQueue.songs[0]);
+			  })
+			  .on('error', error => {
+				console.error(error);
+			  });
+			serverQueue.soundcloudDispatcher = soundcloudDispatcher;
+			soundcloudDispatcher.setVolumeLogarithmic(serverQueue.volume / 5);
+		  }
+		} else {
+		  message.guild.me.voice.channel.leave();
+		  queue.delete(message.guild.id);
+		}
+		message.channel.send(`${serverQueue.songs.length} Song in queue!`);
+	  });
+	}
   }
-	message.channel.send(`${serverQueue.songs.length} Song in queue!`);
-}
 
 function stop(message, serverQueue) {
 	if (!message.member.voice.channel) return message.channel.send('��o trong k�nh ko stop dc!');

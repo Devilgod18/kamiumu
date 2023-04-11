@@ -196,7 +196,7 @@ function skip(message, serverQueue) {
 	if (!serverQueue.dispatcher) return message.channel.send('There is no song currently playing!');
 
   
-    serverQueue.connection.dispatcher.end();
+    serverQueue.dispatcher.end();
 	message.channel.send(`${serverQueue.songs.length} Song in queue!`);
 }
 

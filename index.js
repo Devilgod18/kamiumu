@@ -200,11 +200,11 @@ function skip(message, serverQueue) {
 	
 	
 	
-	if (serverQueue[0].source === "youtube") {
-		console.log(serverQueue[0].source);
+	if (serverQueue.songs[0].source === "youtube") {
+		console.log(serverQueue.songs[0].source);
 		serverQueue.isPlayingSoundCloud = false;
 		serverQueue.connection.dispatcher.end();
-		play(message.guild, serverQueue[0]);
+		play(message.guild, serverQueue.songs[0]);
 		
 	} else {
 		
@@ -217,7 +217,7 @@ function skip(message, serverQueue) {
 		message.guild.me.voice.channel.leave();
 		queue.delete(message.guild.id);
 	} else {
-		play(message.guild, serverQueue[0]);
+		play(message.guild, serverQueue.songs[0]);
 	}
 	
 	message.channel.send(`${serverQueue.length + serverQueue.length} song(s) in queue!`);

@@ -65,6 +65,7 @@ async function execute(message, serverQueue) {
 			voiceChannel: voiceChannel,
 			connection: null,
 			songs: [],
+			soundcloudSongs:[],
 			volume: 5,
 			playing: true,
 			isPlayingSoundCloud: false
@@ -80,23 +81,23 @@ async function execute(message, serverQueue) {
 			};
 			if (!serverQueue) {
 			  queue.set(message.guild.id, queueContruct);
-			  queueContruct.songs.push(song);
+			  queueContruct.soundcloudSongs.push(song);
 			  queueContruct.isPlayingSoundCloud = true;
 			  try {
 				var connection = await voiceChannel.join();
 				queueContruct.connection = connection;
-				play(message.guild, queueContruct.songs[0]);
+				play(message.guild, queueContruct.soundcloudSongs[0]);
 			  } catch (err) {
 				console.log(err);
 				queue.delete(message.guild.id);
 				return message.channel.send(err);
 			  }
 			} else {
-			  serverQueue.songs.push(song);
-			  console.log(serverQueue.songs);
+			  serverQueue.soundcloudSongs.push(song);
+			  console.log(serverQueue.soundcloudSongs);
 			  queueContruct.isPlayingSoundCloud = true;
 			  message.channel.send(`${song.title} added to the queue!`);
-			  message.channel.send(`${serverQueue.songs.length} song(s) in queue!`);
+			  message.channel.send(`${serverQueue.soundcloudSongs.length} song(s) in queue!`);
 			}
 		  } else if (isPlaylist) {
 			if(!serverQueue){
@@ -222,39 +223,55 @@ function play(guild, song) {
 	let dispatcher;
 	
 	if (song.source === 'youtube') {
-		dispatcher = serverQueue.connection
-		  .play(ytdl(song.url, { filter: 'audioonly', quality: 'highestaudio', highWaterMark: 1 << 25 }))
-		  .on('finish', () => {
-			console.log('Music ended!');
-			if (serverQueue.loop) {
-			  serverQueue.songs.push(serverQueue.songs.shift());
-			} else {
-			  serverQueue.songs.shift();
-			}
-			play(guild, serverQueue.songs[0]);
-		  })
-		  .on('error', error => {
-			console.error(error);
-		  });
-		  serverQueue.dispatcher = dispatcher;
-		dispatcher.setVolumeLogarithmic(serverQueue.volume / 5);
-	  } else if (song.source === 'soundcloud') {
-		dispatcher = serverQueue.connection
-		  .play(song.url, { highWaterMark: 1 << 25 })
-		  .on('finish', () => {
-			console.log('Music ended!');
-			if (serverQueue.loop) {
-			  serverQueue.songs.push(serverQueue.songs.shift());
-			} else {
-			  serverQueue.songs.shift();
-			}
-			play(guild, serverQueue.songs[0]);
-		  })
-		  .on('error', error => {
-			console.error(error);
-		  });
-		  serverQueue.dispatcher = dispatcher;
-		  dispatcher.setVolumeLogarithmic(serverQueue.volume / 5);
+        dispatcher = serverQueue.connection
+            .play(ytdl(song.url, { filter: 'audioonly', quality: 'highestaudio', highWaterMark: 1 << 25 }))
+            .on('finish', () => {
+                console.log('Music ended!');
+                if (serverQueue.loop) {
+                    if (serverQueue.songs.length > 0) {
+                        serverQueue.songs.push(serverQueue.songs.shift());
+                    } else if (serverQueue.soundcloudSongs.length > 0) {
+                        serverQueue.soundcloudSongs.push(serverQueue.soundcloudSongs.shift());
+                    }
+                } else {
+                    if (serverQueue.songs.length > 0) {
+                        serverQueue.songs.shift();
+                    } else if (serverQueue.soundcloudSongs.length > 0) {
+                        serverQueue.soundcloudSongs.shift();
+                    }
+                }
+                play(guild, serverQueue.songs[0] || serverQueue.soundcloudSongs[0]);
+            })
+            .on('error', error => {
+                console.error(error);
+            });
+        serverQueue.dispatcher = dispatcher;
+        dispatcher.setVolumeLogarithmic(serverQueue.volume / 5);
+    } else if (song.source === 'soundcloud') {
+        dispatcher = serverQueue.connection
+            .play(song.url, { highWaterMark: 1 << 25 })
+            .on('finish', () => {
+                console.log('Music ended!');
+                if (serverQueue.loop) {
+                    if (serverQueue.soundcloudSongs.length > 0) {
+                        serverQueue.soundcloudSongs.push(serverQueue.soundcloudSongs.shift());
+                    } else if (serverQueue.songs.length > 0) {
+                        serverQueue.songs.push(serverQueue.songs.shift());
+                    }
+                } else {
+                    if (serverQueue.soundcloudSongs.length > 0) {
+                        serverQueue.soundcloudSongs.shift();
+                    } else if (serverQueue.songs.length > 0) {
+                        serverQueue.songs.shift();
+                    }
+                }
+                play(guild, serverQueue.songs[0] || serverQueue.soundcloudSongs[0]);
+            })
+            .on('error', error => {
+                console.error(error);
+            });
+        serverQueue.dispatcher = dispatcher;
+        dispatcher.setVolumeLogarithmic(serverQueue.volume / 5);
 	  }
 	
 	

@@ -195,10 +195,10 @@ function skip(message, serverQueue) {
 	if (!serverQueue) return message.channel.send('Ko co skip!');
 	if (!serverQueue.dispatcher&& !serverQueue.soundcloudDispatcher) return message.channel.send('There is no song currently playing!');
 
-  if (serverQueue.songs[0].source === 'youtube') {
+  if (serverQueue.dispatcher) {
     serverQueue.connection.dispatcher.end();
-  }  else if (serverQueue.songs[0].source === 'soundcloud' && serverQueue.soundcloudDispatcher) {
-    serverQueue.soundcloudDispatcher.end();
+  }  else if (serverQueue.soundcloudDispatcher) {
+    serverQueue.soundcloudDispatcher.destroy();
   }
 	message.channel.send(`${serverQueue.songs.length} Song in queue!`);
 }
@@ -211,7 +211,7 @@ function stop(message, serverQueue) {
 	if (serverQueue.dispatcher) {
 		serverQueue.dispatcher.end();
 	  } else if (serverQueue.soundcloudDispatcher) {
-		serverQueue.soundcloudDispatcher.end();
+		serverQueue.soundcloudDispatcher.destroy();
 	  }
 }
 

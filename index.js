@@ -139,7 +139,7 @@ async function execute(message, serverQueue) {
 				console.log(queueContruct.songs.length);
 				
 				message.channel.send(`${yt_playlist.length} Song playlist added to the queue!`);
-				message.channel.send(`${serverQueue.songs.length} song(s) in queue!`);
+				message.channel.send(`${queueContruct.songs.length} song(s) in queue!`);
 				}
 				
 				else{

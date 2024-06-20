@@ -4,14 +4,17 @@ const {
 	
 } = require('./config.json');
 const ytdl = require('ytdl-core');
+const ytpl = require('ytpl');
 const token = process.env.token;
 const client = new Discord.Client();
-
+const YouTube = require("discord-youtube-api");
 const queue = new Map();
 const DabiImages = require("dabi-images");
 const DabiClient = new DabiImages.Client();
 const request = require('request');
 const cheerio = require('cheerio');
+const youtube = new YouTube(process.env.YOUTUBE_API_KEY);
+
 client.once('ready', () => {
 	console.log('Ready!');
 });
@@ -40,35 +43,7 @@ client.on('message', async message => {
 		stop(message, serverQueue);
 		return;
 
-	} else if (message.content.startsWith(`${prefix}dit`)) {
-		ass(message);
-	} else if (message.content.startsWith(`${prefix}dui`)) {
-		thighs(message);
-	} else if (message.content.startsWith(`${prefix}chan`)) {
-		feet(message);
-	}else if (message.content.startsWith(`${prefix}lon`)) {
-		pussy(message);
-	}else if (message.content.startsWith(`${prefix}fate`)) {
-		fate(message);
-	}
-	else if (message.content.startsWith(`${prefix}nach`)) {
-		armpits(message);
-	}
-	else if (message.content.startsWith(`${prefix}gaicocu`)) {
-		futa(message);
-	}
-	else if (message.content.startsWith(`${prefix}mecha`)) {
-		mecha(message);
-	}
-	else if (message.content.startsWith(`${prefix}loli`)) {
-		loli(message);
-	}
-	else if (message.content.startsWith(`${prefix}reddit`)) {
-		reddit(message);
-	}
-	else if (message.content.startsWith(`${prefix}help`)) {
-		message.channel.send('command nsfw is : lon, dit, dui, chan, fate')
-	}
+	} 
 
 	else {
 		message.channel.send('You need to enter a valid command!')
@@ -77,22 +52,15 @@ client.on('message', async message => {
 
 async function execute(message, serverQueue) {
 	const args = message.content.split(' ');
-
-	const voiceChannel = message.member.voiceChannel;
+	var search_string = args.toString().replace(/,/g,' ');
+	let validate_playlist = ytpl.validateID(search_string);
+	const voiceChannel = message.member.voice.channel;
 	if (!voiceChannel) return message.channel.send('��o trong k�nh');
 	const permissions = voiceChannel.permissionsFor(message.client.user);
 	if (!permissions.has('CONNECT') || !permissions.has('SPEAK')) {
 		return message.channel.send('I need the permissions to join and speak in your voice channel!');
 	}
-
-	const songInfo = await ytdl.getInfo(args[1]);
-	const song = {
-		title: songInfo.videoDetails.title,
-		url: songInfo.videoDetails.video_url,
-	};
-
-	if (!serverQueue) {
-		const queueContruct = {
+	const queueContruct = {
 			textChannel: message.channel,
 			voiceChannel: voiceChannel,
 			connection: null,
@@ -100,15 +68,22 @@ async function execute(message, serverQueue) {
 			volume: 5,
 			playing: true,
 		};
-
+	if (!validate_playlist){
+		var songInfo = await ytdl.getInfo(args[1]);
+		let song = {
+			title: songInfo.videoDetails.title,
+			url: songInfo.videoDetails.video_url
+			};
+			
+		if (!serverQueue) {
 		queue.set(message.guild.id, queueContruct);
-
 		queueContruct.songs.push(song);
-
 		try {
 			var connection = await voiceChannel.join();
 			queueContruct.connection = connection;
 			play(message.guild, queueContruct.songs[0]);
+			console.log(queueContruct.songs);
+			
 		} catch (err) {
 			console.log(err);
 			queue.delete(message.guild.id);
@@ -117,148 +92,79 @@ async function execute(message, serverQueue) {
 	} else {
 		serverQueue.songs.push(song);
 		console.log(serverQueue.songs);
-		return message.channel.send(`${song.title} added to the queue!`);
+		message.channel.send(`${song.title} added to the queue!`);
+		return message.channel.send(`${serverQueue.songs.length} Song in queue!`);
 	}
-
+	}
+	else if (validate_playlist){
+		if(!serverQueue){
+		var yt_playlist = await youtube.getPlaylist(search_string);
+		var songInfo = await youtube.getVideo(yt_playlist[0].url);
+		let song = {
+				title: songInfo.title,
+				url: songInfo.url
+				};
+		queue.set(message.guild.id, queueContruct);
+		queueContruct.songs.push(song);
+		try {
+			var connection = await voiceChannel.join();
+			queueContruct.connection = connection;
+			play(message.guild, queueContruct.songs[0]);
+			
+		} catch (err) {
+			console.log(err);
+			queue.delete(message.guild.id);
+			return message.channel.send(err);
+		}
+		
+		for (var i = 1;i < yt_playlist.length;i++) {
+			var songInfo = await youtube.getVideo(yt_playlist[i].url);
+			let song = {
+				title: songInfo.title,
+				url: songInfo.url
+				};
+			queueContruct.songs.push(song);
+			
+			
+					
+		}
+		
+		console.log(queueContruct.songs);
+		console.log(queueContruct.songs.length);
+		
+		message.channel.send(`${yt_playlist.length} Song playlist added to the queue!`);
+		return message.channel.send(`${queueContruct.songs.length} Song in queue!`);
+		}
+		
+		else{
+			var yt_playlist = await youtube.getPlaylist(search_string);
+		    for (var i = 0;i < yt_playlist.length;i++) {
+			var songInfo = await youtube.getVideo(yt_playlist[i].url);
+			let song = {
+				title: songInfo.title,
+				url: songInfo.url
+				};
+			serverQueue.songs.push(song);
+			console.log(serverQueue.songs);
+			}
+			message.channel.send(`${yt_playlist.length} Song playlist added to the queue!`)
+			return message.channel.send(`${serverQueue.songs.length} Song in queue!`);
+		}
+	}
+	
+	
 }
 
+ 
 function skip(message, serverQueue) {
-	if (!message.member.voiceChannel) return message.channel.send('��o trong k�nh');
-	if (!serverQueue) return message.channel.send('��o c� skip!');
+	if (!message.member.voice.channel) return message.channel.send('Ko trong k�nh');
+	if (!serverQueue) return message.channel.send('Ko co skip!');
 	serverQueue.connection.dispatcher.end();
+	message.channel.send(`${serverQueue.songs.length} Song in queue!`);
 }
-function reddit(message) {
-	DabiClient.nsfw.real.hentai().then(json => {
-		console.log(json);
-    message.channel.send(`${json.url}`);
 
-    // outputs data with image url, possible source and other stuff
-}).catch(error => {
-    console.log(error);
-    // outputs error
-	});
-
-
-}
-function ass(message) {
-	DabiClient.nsfw.hentai.ass().then(json => {
-		console.log(json);
-    message.channel.send(`${json.url}`);
-
-    // outputs data with image url, possible source and other stuff
-}).catch(error => {
-    console.log(error);
-    // outputs error
-	});
-
-
-}
-function loli(message) {
-	DabiClient.nsfw.hentai.loli().then(json => {
-		console.log(json);
-    message.channel.send(`${json.url}`);
-
-    // outputs data with image url, possible source and other stuff
-}).catch(error => {
-    console.log(error);
-    // outputs error
-	});
-
-
-}
-function mecha(message) {
-	DabiClient.nsfw.hentai.mecha().then(json => {
-		console.log(json);
-    message.channel.send(`${json.url}`);
-
-    // outputs data with image url, possible source and other stuff
-}).catch(error => {
-    console.log(error);
-    // outputs error
-	});
-
-
-}
-function futa(message) {
-	DabiClient.nsfw.hentai.futa().then(json => {
-		console.log(json);
-    message.channel.send(`${json.url}`);
-
-    // outputs data with image url, possible source and other stuff
-}).catch(error => {
-    console.log(error);
-    // outputs error
-	});
-
-
-}
-function armpits(message) {
-	DabiClient.nsfw.hentai.armpits().then(json => {
-		console.log(json);
-    message.channel.send(`${json.url}`);
-
-    // outputs data with image url, possible source and other stuff
-}).catch(error => {
-    console.log(error);
-    // outputs error
-	});
-
-
-}
-function thighs(message) {
-	DabiClient.nsfw.hentai.thighs().then(json => {
-		console.log(json);
-    message.channel.send(`${json.url}`);
-
-    // outputs data with image url, possible source and other stuff
-}).catch(error => {
-    console.log(error);
-    // outputs error
-	});
-
-
-}
-function feet(message) {
-	DabiClient.nsfw.hentai.feet().then(json => {
-		console.log(json);
-    message.channel.send(`${json.url}`);
-
-    // outputs data with image url, possible source and other stuff
-}).catch(error => {
-    console.log(error);
-    // outputs error
-	});
-
-
-}
-function fate(message) {
-	DabiClient.nsfw.hentai.fate().then(json => {
-		console.log(json);
-    message.channel.send(`${json.url}`);
-
-    // outputs data with image url, possible source and other stuff
-}).catch(error => {
-    console.log(error);
-    // outputs error
-	});
-
-
-}
-function pussy(message) {
-	DabiClient.nsfw.hentai.pussy().then(json => {
-		console.log(json);
-    message.channel.send(`${json.url}`);
-
-    // outputs data with image url, possible source and other stuff
-}).catch(error => {
-    console.log(error);
-    // outputs error
-	});
-
-
-}
 function stop(message, serverQueue) {
-	if (!message.member.voiceChannel) return message.channel.send('��o trong k�nh ko stop dc!');
+	if (!message.member.voice.channel) return message.channel.send('��o trong k�nh ko stop dc!');
 	serverQueue.songs = [];
 	serverQueue.connection.dispatcher.end();
 }
@@ -272,9 +178,9 @@ function play(guild, song) {
 		return;
 	}
 
-	const dispatcher = serverQueue.connection.playStream(ytdl(song.url,{filter: 'audioonly', quality: 'highestaudio',highWaterMark: 1<<25 },{highWaterMark: 1}))
+	const dispatcher = serverQueue.connection.play(ytdl(song.url,{filter: 'audioonly', quality: 'highestaudio',highWaterMark: 1<<25 },{highWaterMark: 1}))
 
-		.on('end', () => {
+		.on("finish", () => {
 
 			console.log('Music ended!');
 

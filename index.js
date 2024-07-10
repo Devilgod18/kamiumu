@@ -3,7 +3,7 @@ const {
 	prefix,
 	
 } = require('./config.json');
-const ytdl = require('@distube/ytdl-core');
+const ytdl = require('ytdl-core');
 const ytpl = require('ytpl');
 const token = process.env.token;
 const client = new Discord.Client();

@@ -21,7 +21,7 @@
     "opusscript": "0.0.7",
     "request": "^2.88.0",
     "soundcloud-downloader": "^1.0.0",
-    "ytdl-core": "^4.11.5",
+    "ytdl-core": "^4.9.1",
     "ytpl": "^2.2.3"
   },
   "scripts": {

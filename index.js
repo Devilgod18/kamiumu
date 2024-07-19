@@ -1,5 +1,5 @@
 ﻿const { Client, GatewayIntentBits } = require('discord.js');
-const ytdl = require('distube-ytdl-core');
+const ytdl = require('@distube/ytdl-core');
 const { prefix } = require('./config.json');
 const scdl = require('soundcloud-downloader').default;
 const YouTube = require("discord-youtube-api");

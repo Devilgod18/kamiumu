@@ -20,6 +20,7 @@
     "node": "^16.0.0",
     "node-fetch": "^2.6.1",
     "node-pre-gyp": "^0.14.0",
+    "node.js": "^0.0.1-security",
     "opusscript": "0.0.7",
     "request": "^2.88.0",
     "soundcloud-downloader": "^1.0.0",
@@ -32,4 +33,3 @@
   "author": "",
   "license": "ISC"
 }
-

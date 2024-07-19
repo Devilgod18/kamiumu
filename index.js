@@ -1,4 +1,4 @@
-﻿const { Client, GatewayIntentBits } = require('discord.js');
+﻿const { Client, GatewayIntentBits, PermissionFlagsBits } = require('discord.js');
 const ytdl = require('@distube/ytdl-core');
 const { prefix } = require('./config.json');
 const scdl = require('soundcloud-downloader').default;
@@ -57,7 +57,7 @@ async function execute(message, serverQueue) {
 
     if (!voiceChannel) return message.channel.send('You need to be in a voice channel!');
     const permissions = voiceChannel.permissionsFor(message.client.user);
-    if (!permissions.has('CONNECT') || !permissions.has('SPEAK')) {
+    if (!permissions.has(PermissionFlagsBits.Connect) || !permissions.has(PermissionFlagsBits.Speak)) {
         return message.channel.send('I need the permissions to join and speak in your voice channel!');
     }
 

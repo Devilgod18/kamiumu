@@ -4,7 +4,7 @@
   "description": "",
   "main": "index.js",
   "engines": {
-    "node": "16.x"
+    "node": "22.x"
   },
   "dependencies": {
     "@discordjs/uws": "^10.149.0",
@@ -13,18 +13,11 @@
     "cheerio": "^1.0.0-rc.3",
     "dabi-images": "^2.7.5",
     "discord-youtube-api": "^0.1.0",
-    "discord.js": "^13.0.0",
+    "discord.js": "^14.0.0",  // Updated to latest major version
     "dotenv": "^16.4.5",
-    "ffmpeg": "0.0.4",
-    "ffmpeg-static": "^3.0.0",
-    "node": "^16.0.0",
-    "node-fetch": "^2.6.1",
-    "node-pre-gyp": "^0.14.0",
-    "node.js": "^0.0.1-security",
-    "opusscript": "0.0.7",
-    "request": "^2.88.0",
+    "ffmpeg-static": "^4.5.0",  // Ensure compatibility with the latest versions
+    "opusscript": "^0.0.8",
     "soundcloud-downloader": "^1.0.0",
-    "ytdl-core": "^4.11.5",
     "ytpl": "^2.3.0"
   },
   "scripts": {
@@ -33,3 +26,4 @@
   "author": "",
   "license": "ISC"
 }
+

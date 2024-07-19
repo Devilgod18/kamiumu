@@ -1,8 +1,8 @@
 ﻿const { Client, Intents } = require('discord.js');
 const { prefix } = require('./config.json');
-const ytdl = require('ytdl-core');
+const ytdl = require('@distube/ytdl-core');
 const ytpl = require('ytpl');
-const { joinVoiceChannel, createAudioPlayer, createAudioResource, AudioPlayerStatus, VoiceConnectionStatus } = require('@discordjs/voice');
+const { joinVoiceChannel, createAudioPlayer, createAudioResource, AudioPlayerStatus } = require('@discordjs/voice');
 const YouTube = require("discord-youtube-api");
 const DabiImages = require("dabi-images");
 const DabiClient = new DabiImages.Client();
@@ -78,15 +78,8 @@ async function execute(message, serverQueue) {
         };
     } else if (ytpl.validateID(search_string)) {
         const yt_playlist = await youtube.getPlaylist(search_string);
-        const songInfo = await youtube.getVideo(yt_playlist[0].url);
-        song = {
-            title: songInfo.title,
-            url: songInfo.url,
-            source: 'youtube'
-        };
-        queueContruct.songs.push(song);
-        for (let i = 1; i < yt_playlist.length; i++) {
-            const songInfo = await youtube.getVideo(yt_playlist[i].url);
+        for (const item of yt_playlist) {
+            const songInfo = await youtube.getVideo(item.url);
             const song = {
                 title: songInfo.title,
                 url: songInfo.url,
@@ -128,7 +121,7 @@ async function execute(message, serverQueue) {
 }
 
 function skip(message, serverQueue) {
-    if (!message.member.voice.channel) return message.channel.send('You have to be in a voice channel to stop the music!');
+    if (!message.member.voice.channel) return message.channel.send('You have to be in a voice channel to skip the music!');
     if (!serverQueue) return message.channel.send('There is no song that I could skip!');
     serverQueue.player.stop();
 }
@@ -150,7 +143,7 @@ function play(guild, song) {
 
     let resource = null;
     if (song.source === 'youtube') {
-        resource = createAudioResource(ytdl(song.url, { filter: 'audioonly' }));
+        resource = createAudioResource(ytdl(song.url, { filter: 'audioonly', quality: 'highestaudio' }));
     } else if (song.source === 'soundcloud') {
         resource = createAudioResource(song.url);
     }
@@ -160,10 +153,9 @@ function play(guild, song) {
         serverQueue.songs.shift();
         play(guild, serverQueue.songs[0]);
     });
-    serverQueue.player.on('error', error => console.error(error));
+    serverQueue.player.on('error', error => console.error('Player error:', error));
 
     serverQueue.textChannel.send(`Now playing: ${song.title}`);
 }
 
 client.login(process.env.token);
-

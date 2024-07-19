@@ -22,17 +22,11 @@ exports.getFunctions = (html5playerfile, options) => exports.cache.getOrSet(html
 
 // NewPipeExtractor regexps
 const DECIPHER_NAME_REGEXPS = [
+  '\\bm=([a-zA-Z0-9$]{2,})\\(decodeURIComponent\\(h\\.s\\)\\);',
   '\\bc&&\\(c=([a-zA-Z0-9$]{2,})\\(decodeURIComponent\\(c\\)\\)',
-  '\\bm=([a-zA-Z0-9$]{2,})\\(decodeURIComponent\\(h\\.s\\)\\)',
-  '\\b([\\w$]{2,})\\s*=\\s*function\\((\\w+)\\)\\{\\s*\\2=\\s*\\2\\.split\\(""\\)\\s*;',
+  // eslint-disable-next-line max-len
+  '(?:\\b|[^a-zA-Z0-9$])([a-zA-Z0-9$]{2,})\\s*=\\s*function\\(\\s*a\\s*\\)\\s*\\{\\s*a\\s*=\\s*a\\.split\\(\\s*""\\s*\\)',
   '([\\w$]+)\\s*=\\s*function\\((\\w+)\\)\\{\\s*\\2=\\s*\\2\\.split\\(""\\)\\s*;',
-  '\\bc\\s*&&\\s*d\\.set\\([^,]+\\s*,\\s*(:encodeURIComponent\\s*\\()([a-zA-Z0-9$]+)\\(',
-  '(?:\\b|[^a-zA-Z0-9$])([a-zA-Z0-9$]{2,})\\s*=\\s*function\\(\\s*a\\s*\\)' +
-    '\\s*\\{\\s*a\\s*=\\s*a\\.split\\(\\s*""\\s*\\)',
-];
-
-const N_TRANSFORM_NAME_REGEXPS = [
-  'b=a\\.get\\("n"\\)\\W*?b=([a-zA-Z0-9$\\[\\]]{2,})\\(b\\)',
 ];
 
 // LavaPlayer regexps
@@ -48,10 +42,10 @@ const SWAP_PART = ':function\\(a,b\\)\\{' +
       'var c=a\\[0\\];a\\[0\\]=a\\[b%a\\.length\\];a\\[b(?:%a.length|)\\]=c(?:;return a)?\\}';
 
 const DECIPHER_REGEXP = `function(?: ${VARIABLE_PART})?\\(a\\)\\{` +
-`a=a\\.split\\(""\\);\\s*` +
-`((?:(?:a=)?${VARIABLE_PART}${VARIABLE_PART_ACCESS}\\(a,\\d+\\);)+)` +
-`return a\\.join\\(""\\)` +
-`\\}`;
+  `a=a\\.split\\(""\\);\\s*` +
+  `((?:(?:a=)?${VARIABLE_PART}${VARIABLE_PART_ACCESS}\\(a,\\d+\\);)+)` +
+  `return a\\.join\\(""\\)` +
+  `\\}`;
 
 const HELPER_REGEXP = `var (${VARIABLE_PART})=\\{((?:(?:${
   VARIABLE_PART_DEFINE}${REVERSE_PART}|${
@@ -59,10 +53,12 @@ const HELPER_REGEXP = `var (${VARIABLE_PART})=\\{((?:(?:${
   VARIABLE_PART_DEFINE}${SPLICE_PART}|${
   VARIABLE_PART_DEFINE}${SWAP_PART}),?\\n?)+)\\};`;
 
-const N_TRANSFORM_REGEXP = 'function\\(\\s*(\\w+)\\s*\\)\\s*\\{var' +
-  '\\s*(\\w+)=\\1\\.split\\(""\\),\\s*(\\w+)=(\\[.*?\\]);\\s*\\3\\[\\d+\\]' +
-  '(.*?try)(\\{.*?\\})catch\\(\\s*(\\w+)\\s*\\)\\s*\\' +
-  '{\\s*return"enhanced_except_([A-z0-9-]+)"\\s*\\+\\s*\\1\\s*}\\s*return\\s*\\2\\.join\\(""\\)\\};';
+const N_TRANSFORM_REGEXP = 'function\\(\\s*(\\w+)\\s*\\)\\s*\\{' +
+  'var\\s*(\\w+)=(?:\\1\\.split\\(""\\)|String\\.prototype\\.split\\.call\\(\\1,""\\)),' +
+  '\\s*(\\w+)=(\\[.*?]);\\s*\\3\\[\\d+]' +
+  '(.*?try)(\\{.*?})catch\\(\\s*(\\w+)\\s*\\)\\s*\\' +
+  '{\\s*return"enhanced_except_([A-z0-9-]+)"\\s*\\+\\s*\\1\\s*}' +
+  '\\s*return\\s*(\\2\\.join\\(""\\)|Array\\.prototype\\.join\\.call\\(\\2,""\\))};';
 
 const DECIPHER_ARGUMENT = 'sig';
 const N_ARGUMENT = 'ncode';
@@ -163,28 +159,16 @@ const extractNTransformFunc = body => {
   }
 };
 
-const extractNTransformWithName = body => {
-  try {
-    const nFuncName = getFuncName(body, N_TRANSFORM_NAME_REGEXPS);
-    const funcPattern = `(${nFuncName.replace(/\$/g, '\\$')}=function\\([a-zA-Z0-9_]+\\){.+?.join\\(""\\)});`;
-    const nTransformFunc = `var ${matchGroup1(funcPattern, body)};`;
-    const callerFunc = `${nFuncName}(${N_ARGUMENT});`;
-    return nTransformFunc + callerFunc;
-  } catch (e) {
-    return null;
-  }
-};
-
 let nTransformWarning = false;
 const extractNTransform = body => {
   // Faster: extractNTransformFunc
-  const nTransformFunc = getExtractFunctions([extractNTransformFunc, extractNTransformWithName], body);
+  const nTransformFunc = getExtractFunctions([extractNTransformFunc], body);
   if (!nTransformFunc && !nTransformWarning) {
     // This is optional, so we can continue if it's not found, but it will bottleneck the download.
     console.warn('\x1b[33mWARNING:\x1B[0m Could not parse n transform function.\n' +
       `Please report this issue with the "${
         utils.saveDebugFile('base.js', body)
-      }" file on https://github.com/distubejs/ytdl-core/issues.\nStream URL may be slow but still works.`);
+      }" file on https://github.com/distubejs/ytdl-core/issues.`);
     nTransformWarning = true;
   }
   return nTransformFunc;

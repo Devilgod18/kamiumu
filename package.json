@@ -4,7 +4,7 @@
   "description": "",
   "main": "index.js",
   "engines": {
-    "node": "14.21.3"
+    "node": "22.2.0"
   },
   "dependencies": {
     "@discordjs/uws": "^10.149.0",
@@ -18,7 +18,7 @@
     "dotenv": "^16.4.5",
     "ffmpeg": "0.0.4",
     "ffmpeg-static": "^3.0.0",
-    "node": "^14.21.3",
+    "node": "^22.2.0",
     "node-fetch": "^2.6.1",
     "node-pre-gyp": "^0.14.0",
     "opusscript": "0.0.7",

@@ -2,7 +2,7 @@
 const { prefix } = require('./config.json');
 const ytdl = require('@distube/ytdl-core');
 const ytpl = require('ytpl');
-const { joinVoiceChannel, createAudioPlayer, createAudioResource, AudioPlayerStatus } = require('@discordjs/voice');
+const { joinVoiceChannel, createAudioPlayer, createAudioResource, AudioPlayerStatus, VoiceConnectionStatus } = require('@discordjs/voice');
 const YouTube = require('discord-youtube-api');
 const DabiImages = require('dabi-images');
 const DabiClient = new DabiImages.Client();
@@ -53,10 +53,14 @@ async function execute(message, serverQueue) {
     const searchString = args.slice(1).join(' ');
     const voiceChannel = message.member.voice.channel;
 
-    if (!voiceChannel) return message.channel.send('You need to be in a voice channel to play music!');
+    if (!voiceChannel) {
+        console.log('User not in a voice channel');
+        return message.channel.send('You need to be in a voice channel to play music!');
+    }
 
     const permissions = voiceChannel.permissionsFor(message.client.user);
     if (!permissions.has('CONNECT') || !permissions.has('SPEAK')) {
+        console.log('Bot lacks permissions to connect or speak');
         return message.channel.send('I need the permissions to join and speak in your voice channel!');
     }
 
@@ -122,6 +126,19 @@ async function execute(message, serverQueue) {
             queueConstruct.connection = connection;
             queueConstruct.player = createAudioPlayer();
             connection.subscribe(queueConstruct.player);
+
+            connection.on(VoiceConnectionStatus.Ready, () => {
+                console.log('Successfully connected to the voice channel');
+            });
+
+            connection.on(VoiceConnectionStatus.Disconnected, (oldState, newState) => {
+                console.log('Disconnected from the voice channel:', oldState, newState);
+            });
+
+            connection.on(VoiceConnectionStatus.Destroyed, () => {
+                console.log('Voice connection was destroyed');
+            });
+
             play(message.guild, queueConstruct.songs[0]);
         } catch (err) {
             console.error('Error joining the voice channel:', err);
@@ -167,7 +184,7 @@ function play(guild, song) {
         serverQueue.songs.shift();
         play(guild, serverQueue.songs[0]);
     });
-    serverQueue.player.on('error', error => console.error(error));
+    serverQueue.player.on('error', error => console.error('Audio player error:', error));
 
     serverQueue.textChannel.send(`Now playing: ${song.title}`);
 }

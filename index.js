@@ -1,10 +1,20 @@
-﻿const Discord = require('discord.js');
+﻿const { Client, GatewayIntentBits } = require('discord.js'); // Import GatewayIntentBits
+
 const {
     prefix,
 } = require('./config.json');
 const ytpl = require('ytpl');
 const token = process.env.token;
-const client = new Discord.Client();
+const client = new Client({
+    intents: [
+        GatewayIntentBits.Guilds,
+        GatewayIntentBits.GuildMessages,
+        GatewayIntentBits.MessageContent,
+        GatewayIntentBits.GuildVoiceStates,
+        GatewayIntentBits.GuildPresences,
+        GatewayIntentBits.GuildMembers
+    ]
+});
 const YouTube = require("discord-youtube-api");
 const queue = new Map();
 const DabiImages = require("dabi-images");
@@ -14,6 +24,7 @@ const cheerio = require('cheerio');
 const youtube = new YouTube(process.env.YOUTUBE_API_KEY);
 const scdl = require('soundcloud-downloader').default;
 const ytdl = require('distube-ytdl-core'); // Import distube-ytdl-core
+
 client.once('ready', () => {
     console.log('Ready!');
 });
@@ -26,7 +37,7 @@ client.once('disconnect', () => {
     console.log('Disconnect!');
 });
 
-client.on('message', async message => {
+client.on('messageCreate', async message => { // Update to 'messageCreate'
     if (message.author.bot) return;
     if (!message.content.startsWith(prefix)) return;
 
@@ -274,4 +285,5 @@ function play(guild, song) {
 }
 
 client.login(token);
+
 

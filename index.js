@@ -1,3 +1,4 @@
+<<<<<<< Updated upstream
 ﻿const Discord = require('discord.js');
 const {
 	prefix,
@@ -7,6 +8,13 @@ const ytdl = require('ytdl-core');
 const ytpl = require('ytpl');
 const token = process.env.token;
 const client = new Discord.Client();
+=======
+﻿const { Client, Intents } = require('discord.js');
+const { prefix } = require('./config.json');
+const ytdl = require('@distube/ytdl-core');
+const ytpl = require('ytpl');
+const { joinVoiceChannel, createAudioPlayer, createAudioResource, AudioPlayerStatus } = require('@discordjs/voice');
+>>>>>>> Stashed changes
 const YouTube = require("discord-youtube-api");
 const queue = new Map();
 const DabiImages = require("dabi-images");
@@ -51,6 +59,7 @@ client.on('message', async message => {
 });
 
 async function execute(message, serverQueue) {
+<<<<<<< Updated upstream
 	const args = message.content.split(' ');
 	var search_string = args.toString().replace(/,/g,' ');
 	let validate_playlist = ytpl.validateID(search_string);
@@ -153,10 +162,85 @@ async function execute(message, serverQueue) {
 	}
 	
 	
+=======
+    const args = message.content.split(' ');
+    const search_string = args.slice(1).join(' ');
+    const voiceChannel = message.member.voice.channel;
+    if (!voiceChannel) return message.channel.send('You need to be in a voice channel to play music!');
+    const permissions = voiceChannel.permissionsFor(message.client.user);
+    if (!permissions.has('CONNECT') || !permissions.has('SPEAK')) {
+        return message.channel.send('I need the permissions to join and speak in your voice channel!');
+    }
+
+    const queueContruct = {
+        textChannel: message.channel,
+        voiceChannel: voiceChannel,
+        connection: null,
+        player: null,
+        songs: [],
+        volume: 5,
+        playing: true,
+        isPlayingSoundCloud: false
+    };
+
+    let song = null;
+    if (args[1].includes('soundcloud.com')) {
+        // Download SoundCloud track
+        const trackInfo = await scdl.getInfo(args[1], process.env.SOUNDCLOUD_CLIENT_ID);
+        const track = await scdl.downloadFormat(trackInfo.permalink_url, scdl.FORMATS.OPUS, process.env.SOUNDCLOUD_CLIENT_ID);
+        song = {
+            title: trackInfo.title,
+            url: track,
+            source: 'soundcloud'
+        };
+    } else if (ytpl.validateID(search_string)) {
+        const yt_playlist = await youtube.getPlaylist(search_string);
+        for (const item of yt_playlist) {
+            const songInfo = await youtube.getVideo(item.url);
+            const song = {
+                title: songInfo.title,
+                url: songInfo.url,
+                source: 'youtube'
+            };
+            queueContruct.songs.push(song);
+        }
+    } else {
+        const songInfo = await ytdl.getInfo(args[1]);
+        song = {
+            title: songInfo.videoDetails.title,
+            url: songInfo.videoDetails.video_url,
+            source: 'youtube'
+        };
+    }
+
+    if (!serverQueue) {
+        queue.set(message.guild.id, queueContruct);
+        queueContruct.songs.push(song);
+        try {
+            const connection = joinVoiceChannel({
+                channelId: voiceChannel.id,
+                guildId: message.guild.id,
+                adapterCreator: message.guild.voiceAdapterCreator
+            });
+            queueContruct.connection = connection;
+            queueContruct.player = createAudioPlayer();
+            connection.subscribe(queueContruct.player);
+            play(message.guild, queueContruct.songs[0]);
+        } catch (err) {
+            console.log(err);
+            queue.delete(message.guild.id);
+            return message.channel.send(err);
+        }
+    } else {
+        serverQueue.songs.push(song);
+        message.channel.send(`${song.title} added to the queue!`);
+    }
+>>>>>>> Stashed changes
 }
 
  
 function skip(message, serverQueue) {
+<<<<<<< Updated upstream
 	if (!message.member.voice.channel) return message.channel.send('Ko trong k�nh');
 	if (!serverQueue) return message.channel.send('Ko co skip!');
 <<<<<<< Updated upstream
@@ -186,6 +270,11 @@ function skip(message, serverQueue) {
 	
 	message.channel.send(`${songs.length + songs.length} song(s) in queue!`);
 >>>>>>> Stashed changes
+=======
+    if (!message.member.voice.channel) return message.channel.send('You have to be in a voice channel to skip the music!');
+    if (!serverQueue) return message.channel.send('There is no song that I could skip!');
+    serverQueue.player.stop();
+>>>>>>> Stashed changes
 }
 
 function stop(message, serverQueue) {
@@ -197,6 +286,7 @@ function stop(message, serverQueue) {
 function play(guild, song) {
 	const serverQueue = queue.get(guild.id);
 
+<<<<<<< Updated upstream
 	if (!song) {
 		serverQueue.voiceChannel.leave();
 		queue.delete(guild.id);
@@ -205,6 +295,21 @@ function play(guild, song) {
 
 <<<<<<< Updated upstream
 	const dispatcher = serverQueue.connection.play(ytdl(song.url,{filter: 'audioonly', quality: 'highestaudio',highWaterMark: 1<<25 },{highWaterMark: 1}))
+=======
+    let resource = null;
+    if (song.source === 'youtube') {
+        resource = createAudioResource(ytdl(song.url, { filter: 'audioonly', quality: 'highestaudio' }));
+    } else if (song.source === 'soundcloud') {
+        resource = createAudioResource(song.url);
+    }
+
+    serverQueue.player.play(resource);
+    serverQueue.player.on(AudioPlayerStatus.Idle, () => {
+        serverQueue.songs.shift();
+        play(guild, serverQueue.songs[0]);
+    });
+    serverQueue.player.on('error', error => console.error('Player error:', error));
+>>>>>>> Stashed changes
 
 		.on("finish", () => {
 

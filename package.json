@@ -8,6 +8,11 @@
   },
   "dependencies": {
     "@discordjs/uws": "^10.149.0",
+<<<<<<< Updated upstream
+=======
+    "@discordjs/voice": "^0.17.0",
+    "@distube/ytdl-core": "^4.13.5",
+>>>>>>> Stashed changes
     "cheerio": "^1.0.0-rc.3",
     "dabi-images": "^2.7.5",
     "discord-youtube-api": "^0.1.0",

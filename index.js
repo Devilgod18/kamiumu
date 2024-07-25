@@ -1,12 +1,12 @@
-﻿const { Client, GatewayIntentBits, PermissionFlagsBits, ButtonBuilder, ButtonStyle, ActionRowBuilder } = require('discord.js');
+﻿const { Client, GatewayIntentBits, PermissionFlagsBits, ButtonBuilder, ButtonStyle, ActionRowBuilder, Events } = require('discord.js');
 const ytdl = require('@distube/ytdl-core');
 const { prefix } = require('./config.json');
 const scdl = require('soundcloud-downloader').default;
 const ytpl = require('ytpl');
 const YouTube = require("discord-youtube-api");
-const { joinVoiceChannel, createAudioPlayer, createAudioResource, AudioPlayerStatus, VoiceConnectionStatus, entersState } = require('@discordjs/voice');
-const { token, YOUTUBE_API_KEY, SOUNDCLOUD_CLIENT_ID } = process.env;
-const youtube = new YouTube(YOUTUBE_API_KEY);
+const { joinVoiceChannel, createAudioPlayer, createAudioResource, AudioPlayerStatus, VoiceConnectionStatus, entersState, AudioPlayer } = require('@discordjs/voice');
+const token = process.env.token;
+const youtube = new YouTube(process.env.YOUTUBE_API_KEY);
 
 const client = new Client({
     intents: [
@@ -20,8 +20,15 @@ const client = new Client({
 const queue = new Map();
 require('events').EventEmitter.defaultMaxListeners = 20;
 
-client.once('ready', () => {
+const musicChannelId = 'YOUR_CHANNEL_ID'; // Replace with your channel ID
+
+client.once('ready', async () => {
     console.log('Ready!');
+    const channel = client.channels.cache.get(musicChannelId);
+    if (channel) {
+        const message = await channel.send({ content: 'Control the music:', components: [createMusicButtons()] });
+        client.musicMessageId = message.id; // Save message ID to update it later
+    }
 });
 
 client.once('reconnecting', () => {
@@ -47,44 +54,91 @@ client.on('messageCreate', async message => {
     } else if (message.content.startsWith(`${prefix}stop`)) {
         stop(message, serverQueue);
         return;
-    } else if (message.content.startsWith(`${prefix}reverse`)) {
-        reverse(message, serverQueue);
+    } else if (message.content.startsWith(`${prefix}pause`)) {
+        pause(message, serverQueue);
+        return;
+    } else if (message.content.startsWith(`${prefix}rewind`)) {
+        rewind(message, serverQueue);
         return;
     } else {
         message.channel.send('You need to enter a valid command!');
     }
 });
 
+// Button interaction handler
 client.on('interactionCreate', async interaction => {
     if (!interaction.isButton()) return;
 
     const serverQueue = queue.get(interaction.guild.id);
-    if (!serverQueue) {
-        interaction.reply('There is no song currently playing.');
-        return;
+
+    if (interaction.customId === 'play') {
+        const song = serverQueue?.songs[0];
+        if (song) {
+            play(interaction.guild, song);
+            await interaction.reply('Playing the current song!');
+        } else {
+            await interaction.reply('No song to play!');
+        }
+    } else if (interaction.customId === 'pause') {
+        if (serverQueue && serverQueue.player) {
+            serverQueue.player.pause();
+            await interaction.reply('Playback paused.');
+        } else {
+            await interaction.reply('No song playing to pause.');
+        }
+    } else if (interaction.customId === 'skip') {
+        skip(interaction, serverQueue);
+        await interaction.reply('Skipped to the next song!');
+    } else if (interaction.customId === 'rewind') {
+        rewind(interaction, serverQueue);
+        await interaction.reply('Rewound to the beginning of the track.');
+    } else if (interaction.customId === 'stop') {
+        stop(interaction, serverQueue);
+        await interaction.reply('Stopped playback and cleared the queue.');
     }
 
-    switch (interaction.customId) {
-        case 'pause':
-            pause(interaction, serverQueue);
-            break;
-        case 'play':
-            playResume(interaction, serverQueue);
-            break;
-        case 'skip':
-            skip(interaction, serverQueue);
-            break;
-        case 'stop':
-            stop(interaction, serverQueue);
-            break;
-        case 'reverse':
-            reverse(interaction, serverQueue);
-            break;
-        default:
-            interaction.reply('Unknown button action.');
-            break;
+    // Update buttons if necessary
+    if (client.musicMessageId) {
+        const channel = client.channels.cache.get(musicChannelId);
+        if (channel) {
+            try {
+                const message = await channel.messages.fetch(client.musicMessageId);
+                if (message) {
+                    await message.edit({ components: [createMusicButtons()] });
+                }
+            } catch (err) {
+                console.error('Failed to update message:', err);
+            }
+        }
     }
 });
+
+// Function to create music control buttons
+function createMusicButtons() {
+    return new ActionRowBuilder()
+        .addComponents(
+            new ButtonBuilder()
+                .setCustomId('play')
+                .setLabel('▶️ Play')
+                .setStyle(ButtonStyle.Primary),
+            new ButtonBuilder()
+                .setCustomId('pause')
+                .setLabel('⏸️ Pause')
+                .setStyle(ButtonStyle.Secondary),
+            new ButtonBuilder()
+                .setCustomId('skip')
+                .setLabel('⏭️ Skip')
+                .setStyle(ButtonStyle.Success),
+            new ButtonBuilder()
+                .setCustomId('rewind')
+                .setLabel('⏮️ Rewind')
+                .setStyle(ButtonStyle.Danger),
+            new ButtonBuilder()
+                .setCustomId('stop')
+                .setLabel('🛑 Stop')
+                .setStyle(ButtonStyle.Secondary)
+        );
+}
 
 async function execute(message, serverQueue) {
     const args = message.content.split(' ').slice(1);
@@ -106,52 +160,44 @@ async function execute(message, serverQueue) {
         playing: true,
         isPlayingSoundCloud: false,
         player: createAudioPlayer(),
-        songHistory: []
     };
 
     let song = null;
-    try {
-        if (args[0].includes('soundcloud.com')) {
-            const trackInfo = await scdl.getInfo(args[0], SOUNDCLOUD_CLIENT_ID);
-            const track = await scdl.downloadFormat(trackInfo.permalink_url, scdl.FORMATS.OPUS, SOUNDCLOUD_CLIENT_ID);
-            song = {
-                title: trackInfo.title,
-                url: track,
-                source: 'soundcloud'
+    if (args[0].includes('soundcloud.com')) {
+        // Download SoundCloud track
+        const trackInfo = await scdl.getInfo(args[0], process.env.SOUNDCLOUD_CLIENT_ID);
+        const track = await scdl.downloadFormat(trackInfo.permalink_url, scdl.FORMATS.OPUS, process.env.SOUNDCLOUD_CLIENT_ID);
+        song = {
+            title: trackInfo.title,
+            url: track,
+            source: 'soundcloud'
+        };
+    } else if (ytpl.validateID(searchString)) {
+        const playlist = await ytpl(searchString);
+        for (const video of playlist.items) {
+            const song = {
+                title: video.title,
+                url: video.shortUrl,
+                source: 'youtube'
             };
-        } else if (ytpl.validateID(searchString)) {
-            const playlist = await ytpl(searchString);
-            if (playlist.items.length === 0) {
-                return message.channel.send('Playlist is empty!');
-            }
-            for (const video of playlist.items) {
-                const song = {
-                    title: video.title,
-                    url: video.shortUrl,
-                    source: 'youtube'
-                };
-                if (!serverQueue) {
-                    queue.set(message.guild.id, queueContruct);
-                    queueContruct.songs.push(song);
-                } else {
-                    serverQueue.songs.push(song);
-                    message.channel.send(`${song.title} added to the queue!`);
-                }
-            }
-            message.channel.send(`${playlist.items.length} Song playlist added to the queue!`);
-        } else {
+            queueContruct.songs.push(song);
+        }
+        message.channel.send(`${playlist.items.length} Song playlist added to the queue!`);
+    } else {
+        try {
             const songInfo = await ytdl.getInfo(searchString);
             song = {
                 title: songInfo.videoDetails.title,
                 url: songInfo.videoDetails.video_url,
                 source: 'youtube'
             };
+        } catch (err) {
+            message.channel.send('Error: Invalid YouTube URL');
+            return;
         }
+    }
 
-        if (!song) {
-            return message.channel.send('Error: No valid song found');
-        }
-
+    if (song) {
         if (!serverQueue) {
             queue.set(message.guild.id, queueContruct);
             queueContruct.songs.push(song);
@@ -177,41 +223,12 @@ async function execute(message, serverQueue) {
             } catch (err) {
                 console.log(err);
                 queue.delete(message.guild.id);
-                return message.channel.send('Failed to join the voice channel.');
+                return message.channel.send(err.message);
             }
         } else {
             serverQueue.songs.push(song);
             message.channel.send(`${song.title} added to the queue!`);
         }
-
-        const row = new ActionRowBuilder()
-        .addComponents(
-            new ButtonBuilder()
-                .setCustomId('pause')
-                .setEmoji('⏸️') // Pause emoji
-                .setStyle(ButtonStyle.Primary),
-            new ButtonBuilder()
-                .setCustomId('play')
-                .setEmoji('▶️') // Play emoji
-                .setStyle(ButtonStyle.Success),
-            new ButtonBuilder()
-                .setCustomId('stop')
-                .setEmoji('⏹️') // Stop emoji
-                .setStyle(ButtonStyle.Danger),
-            new ButtonBuilder()
-                .setCustomId('reverse')
-                .setEmoji('⏪') // Rewind emoji for reverse
-                .setStyle(ButtonStyle.Primary),
-            new ButtonBuilder()
-                .setCustomId('skip')
-                .setEmoji('⏩') // Skip emoji
-                .setStyle(ButtonStyle.Secondary)
-        );
-
-        message.channel.send({ content: 'Use the buttons below to control the music:', components: [row] });
-    } catch (error) {
-        console.error(error);
-        message.channel.send('There was an error processing your request.');
     }
 }
 
@@ -219,8 +236,6 @@ function skip(interaction, serverQueue) {
     if (!interaction.member.voice.channel) return interaction.reply('You need to be in a voice channel!');
     if (!serverQueue) return interaction.reply('There is no song to skip!');
 
-    const currentSong = serverQueue.songs[0];
-    serverQueue.songHistory.push(currentSong); // Add current song to history
     serverQueue.songs.shift();
     if (serverQueue.songs.length === 0) {
         if (serverQueue.connection) serverQueue.connection.destroy();
@@ -229,31 +244,40 @@ function skip(interaction, serverQueue) {
         play(interaction.guild, serverQueue.songs[0]);
     }
 
-    interaction.reply(`Skipped: ${currentSong.title}. Now playing: ${serverQueue.songs[0] ? serverQueue.songs[0].title : 'nothing'}.`);
+    interaction.reply(`${serverQueue.songs.length} song(s) in queue!`);
 }
 
 function stop(interaction, serverQueue) {
     if (!interaction.member.voice.channel) return interaction.reply('You need to be in a voice channel!');
     if (!serverQueue) return interaction.reply('There is no song to stop!');
 
-    const currentSong = serverQueue.songs[0];
     serverQueue.songs = [];
     if (serverQueue.connection) serverQueue.connection.destroy();
     queue.delete(interaction.guild.id);
-    interaction.reply(`Stopped playing: ${currentSong.title}`);
 }
 
-function reverse(interaction, serverQueue) {
+function pause(interaction, serverQueue) {
     if (!interaction.member.voice.channel) return interaction.reply('You need to be in a voice channel!');
-    if (!serverQueue) return interaction.reply('There is no song to reverse to!');
+    if (!serverQueue || !serverQueue.player || serverQueue.player.state.status !== AudioPlayerStatus.Playing) {
+        return interaction.reply('There is no song playing!');
+    }
 
-    const lastSong = serverQueue.songHistory.pop(); // Get the last song from history
-    if (lastSong) {
-        serverQueue.songs.unshift(lastSong); // Add the last song to the front of the queue
-        play(interaction.guild, lastSong);
-        interaction.reply(`Reversed to: ${lastSong.title}`);
+    serverQueue.player.pause();
+    interaction.reply('Playback paused.');
+}
+
+function rewind(interaction, serverQueue) {
+    if (!interaction.member.voice.channel) return interaction.reply('You need to be in a voice channel!');
+    if (!serverQueue || !serverQueue.player) return interaction.reply('There is no song playing!');
+
+    // Rewind functionality
+    const currentTrack = serverQueue.songs[0];
+    if (currentTrack) {
+        serverQueue.player.stop();
+        play(interaction.guild, currentTrack);
+        interaction.reply('Rewound to the beginning of the track.');
     } else {
-        interaction.reply('No previous song to reverse to!');
+        interaction.reply('No track is currently playing.');
     }
 }
 
@@ -267,50 +291,29 @@ function play(guild, song) {
     }
 
     let resource;
-    try {
-        if (song.source === 'youtube') {
-            resource = createAudioResource(ytdl(song.url, { filter: 'audioonly', quality: 'highestaudio', highWaterMark: 1 << 25 }));
-        } else if (song.source === 'soundcloud') {
-            resource = createAudioResource(song.url);
+    if (song.source === 'youtube') {
+        resource = createAudioResource(ytdl(song.url, { filter: 'audioonly', quality: 'highestaudio', highWaterMark: 1 << 25 }));
+    } else if (song.source === 'soundcloud') {
+        resource = createAudioResource(song.url);
+    }
+
+    const player = createAudioPlayer();
+    player.play(resource);
+
+    serverQueue.connection.subscribe(player);
+
+    player.on(AudioPlayerStatus.Idle, () => {
+        console.log('Music ended!');
+        serverQueue.songs.shift();
+        if (serverQueue.songs.length > 0) {
+            play(guild, serverQueue.songs[0]);
+        } else {
+            serverQueue.connection.destroy();
+            queue.delete(guild.id);
         }
+    });
 
-        serverQueue.player.play(resource);
-        serverQueue.connection.subscribe(serverQueue.player);
-
-        serverQueue.player.on(AudioPlayerStatus.Idle, () => {
-            console.log('Music ended!');
-            serverQueue.songHistory.push(serverQueue.songs[0]); // Add current song to history
-            serverQueue.songs.shift();
-            if (serverQueue.songs.length > 0) {
-                play(guild, serverQueue.songs[0]);
-            } else {
-                serverQueue.connection.destroy();
-                queue.delete(guild.id);
-            }
-        });
-
-        serverQueue.player.on('error', (error) => console.error('Error playing audio:', error));
-    } catch (error) {
-        console.error('Error creating audio resource:', error);
-    }
-}
-
-function pause(interaction, serverQueue) {
-    if (serverQueue.player.state.status === AudioPlayerStatus.Playing) {
-        serverQueue.player.pause();
-        interaction.reply('Paused the current song.');
-    } else {
-        interaction.reply('The song is already paused!');
-    }
-}
-
-function playResume(interaction, serverQueue) {
-    if (serverQueue.player.state.status === AudioPlayerStatus.Paused) {
-        serverQueue.player.unpause();
-        interaction.reply('Resumed the current song.');
-    } else {
-        interaction.reply('Music is already playing!');
-    }
+    player.on('error', (error) => console.error(error));
 }
 
 client.login(token);

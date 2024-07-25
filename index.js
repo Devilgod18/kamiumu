@@ -110,42 +110,43 @@ async function execute(message, serverQueue) {
     };
 
     let song = null;
-    if (args[0].includes('soundcloud.com')) {
-        const trackInfo = await scdl.getInfo(args[0], SOUNDCLOUD_CLIENT_ID);
-        const track = await scdl.downloadFormat(trackInfo.permalink_url, scdl.FORMATS.OPUS, SOUNDCLOUD_CLIENT_ID);
-        song = {
-            title: trackInfo.title,
-            url: track,
-            source: 'soundcloud'
-        };
-    } else if (ytpl.validateID(searchString)) {
-        const playlist = await ytpl(searchString);
-        for (const video of playlist.items) {
-            const song = {
-                title: video.title,
-                url: video.shortUrl,
-                source: 'youtube'
+    try {
+        if (args[0].includes('soundcloud.com')) {
+            const trackInfo = await scdl.getInfo(args[0], SOUNDCLOUD_CLIENT_ID);
+            const track = await scdl.downloadFormat(trackInfo.permalink_url, scdl.FORMATS.OPUS, SOUNDCLOUD_CLIENT_ID);
+            song = {
+                title: trackInfo.title,
+                url: track,
+                source: 'soundcloud'
             };
-            if (!serverQueue) {
-                queue.set(message.guild.id, queueContruct);
-                queueContruct.songs.push(song);
-            } else {
-                serverQueue.songs.push(song);
-                message.channel.send(`${song.title} added to the queue!`);
+        } else if (ytpl.validateID(searchString)) {
+            const playlist = await ytpl(searchString);
+            for (const video of playlist.items) {
+                const song = {
+                    title: video.title,
+                    url: video.shortUrl,
+                    source: 'youtube'
+                };
+                if (!serverQueue) {
+                    queue.set(message.guild.id, queueContruct);
+                    queueContruct.songs.push(song);
+                } else {
+                    serverQueue.songs.push(song);
+                    message.channel.send(`${song.title} added to the queue!`);
+                }
             }
-        }
-        message.channel.send(`${playlist.items.length} Song playlist added to the queue!`);
-    } else {
-        try {
+            message.channel.send(`${playlist.items.length} Song playlist added to the queue!`);
+            return;
+        } else {
             const songInfo = await ytdl.getInfo(searchString);
             song = {
                 title: songInfo.videoDetails.title,
                 url: songInfo.videoDetails.video_url,
                 source: 'youtube'
             };
-        } catch (err) {
-            message.channel.send('Error: Invalid YouTube URL');
         }
+    } catch (err) {
+        return message.channel.send('Error: Invalid URL or issue retrieving song.');
     }
 
     if (!serverQueue) {
@@ -173,7 +174,7 @@ async function execute(message, serverQueue) {
         } catch (err) {
             console.log(err);
             queue.delete(message.guild.id);
-            return message.channel.send(err.message);
+            return message.channel.send('Error connecting to the voice channel.');
         }
     } else {
         serverQueue.songs.push(song);
@@ -191,10 +192,15 @@ async function play(guild, song) {
     }
 
     let resource;
-    if (song.source === 'youtube') {
-        resource = createAudioResource(ytdl(song.url, { filter: 'audioonly', quality: 'highestaudio', highWaterMark: 1 << 25 }));
-    } else if (song.source === 'soundcloud') {
-        resource = createAudioResource(song.url);
+    try {
+        if (song.source === 'youtube') {
+            resource = createAudioResource(ytdl(song.url, { filter: 'audioonly', quality: 'highestaudio', highWaterMark: 1 << 25 }));
+        } else if (song.source === 'soundcloud') {
+            resource = createAudioResource(song.url);
+        }
+    } catch (error) {
+        console.error('Error creating audio resource:', error);
+        return;
     }
 
     serverQueue.player.play(resource);
@@ -212,34 +218,38 @@ async function play(guild, song) {
         }
     });
 
-    serverQueue.player.on('error', (error) => console.error(error));
+    serverQueue.player.on('error', (error) => console.error('Error in audio player:', error));
 
     // Send control buttons after the song starts playing
     const row = new ActionRowBuilder()
-    .addComponents(
-        new ButtonBuilder()
-            .setCustomId('pause')
-            .setEmoji('⏸️') // Pause emoji
-            .setStyle(ButtonStyle.Primary),
-        new ButtonBuilder()
-            .setCustomId('play')
-            .setEmoji('▶️') // Play emoji
-            .setStyle(ButtonStyle.Success),
-        new ButtonBuilder()
-            .setCustomId('stop')
-            .setEmoji('⏹️') // Stop emoji
-            .setStyle(ButtonStyle.Danger),
-        new ButtonBuilder()
-            .setCustomId('reverse')
-            .setEmoji('⏪') // Rewind emoji for reverse
-            .setStyle(ButtonStyle.Primary),
-        new ButtonBuilder()
-            .setCustomId('skip')
-            .setEmoji('⏩') // Skip emoji
-            .setStyle(ButtonStyle.Secondary)
-    );
+        .addComponents(
+            new ButtonBuilder()
+                .setCustomId('pause')
+                .setEmoji('⏸️') // Pause emoji
+                .setStyle(ButtonStyle.Primary),
+            new ButtonBuilder()
+                .setCustomId('play')
+                .setEmoji('▶️') // Play emoji
+                .setStyle(ButtonStyle.Success),
+            new ButtonBuilder()
+                .setCustomId('stop')
+                .setEmoji('⏹️') // Stop emoji
+                .setStyle(ButtonStyle.Danger),
+            new ButtonBuilder()
+                .setCustomId('reverse')
+                .setEmoji('⏪') // Rewind emoji for reverse
+                .setStyle(ButtonStyle.Primary),
+            new ButtonBuilder()
+                .setCustomId('skip')
+                .setEmoji('⏩') // Skip emoji
+                .setStyle(ButtonStyle.Secondary)
+        );
 
-    await serverQueue.textChannel.send({ content: `Now playing: ${song.title}`, components: [row] });
+    try {
+        await serverQueue.textChannel.send({ content: 'Use the buttons below to control the music:', components: [row] });
+    } catch (error) {
+        console.error('Error sending control buttons:', error);
+    }
 }
 
 function skip(interaction, serverQueue) {

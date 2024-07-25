@@ -1,9 +1,9 @@
-﻿const { Client, GatewayIntentBits, PermissionFlagsBits, ActionRowBuilder, ButtonBuilder, ButtonStyle, Events } = require('discord.js');
+﻿const { Client, GatewayIntentBits, PermissionFlagsBits, ActionRowBuilder, ButtonBuilder, ButtonStyle, Events, InteractionType } = require('discord.js');
 const ytdl = require('@distube/ytdl-core');
 const { prefix } = require('./config.json');
 const scdl = require('soundcloud-downloader').default;
 const ytpl = require('ytpl');
-const YouTube = require("discord-youtube-api");
+const YouTube = require('discord-youtube-api');
 const { joinVoiceChannel, createAudioPlayer, createAudioResource, AudioPlayerStatus, VoiceConnectionStatus, entersState } = require('@discordjs/voice');
 const token = process.env.token;
 const youtube = new YouTube(process.env.YOUTUBE_API_KEY);
@@ -40,13 +40,14 @@ client.on('messageCreate', async message => {
 
     if (message.content.startsWith(`${prefix}play`)) {
         await execute(message, serverQueue);
-        return;
     } else if (message.content.startsWith(`${prefix}skip`)) {
         skip(message, serverQueue);
-        return;
     } else if (message.content.startsWith(`${prefix}stop`)) {
         stop(message, serverQueue);
-        return;
+    } else if (message.content.startsWith(`${prefix}pause`)) {
+        pause(message, serverQueue);
+    } else if (message.content.startsWith(`${prefix}resume`)) {
+        resume(message, serverQueue);
     } else {
         message.channel.send('You need to enter a valid command!');
     }
@@ -57,26 +58,26 @@ client.on(Events.InteractionCreate, async interaction => {
 
     const serverQueue = queue.get(interaction.guild.id);
 
+    if (!serverQueue) {
+        return interaction.reply({ content: 'There is nothing playing right now.', ephemeral: true });
+    }
+
     switch (interaction.customId) {
-        case 'play':
-            if (serverQueue && serverQueue.songs.length > 0) {
-                play(interaction.guild, serverQueue.songs[0]);
-                await interaction.reply('Playback started.');
-            } else {
-                await interaction.reply('No song in the queue.');
-            }
-            break;
         case 'pause':
-            pause(interaction, serverQueue);
-            await interaction.reply('Playback paused.');
+            pause(interaction.message, serverQueue);
+            await interaction.reply({ content: 'Playback paused!', ephemeral: true });
             break;
-        case 'stop':
-            stop(interaction, serverQueue);
-            await interaction.reply('Playback stopped.');
+        case 'resume':
+            resume(interaction.message, serverQueue);
+            await interaction.reply({ content: 'Playback resumed!', ephemeral: true });
             break;
         case 'skip':
-            skip(interaction, serverQueue);
-            await interaction.reply('Skipped to next song.');
+            skip(interaction.message, serverQueue);
+            await interaction.reply({ content: 'Song skipped!', ephemeral: true });
+            break;
+        case 'stop':
+            stop(interaction.message, serverQueue);
+            await interaction.reply({ content: 'Playback stopped!', ephemeral: true });
             break;
     }
 });
@@ -100,7 +101,8 @@ async function execute(message, serverQueue) {
         volume: 5,
         playing: true,
         isPlayingSoundCloud: false,
-        player: null
+        player: null,
+        paused: false
     };
 
     let song = null;
@@ -228,6 +230,36 @@ async function execute(message, serverQueue) {
             message.channel.send('Error: Invalid YouTube URL');
         }
     }
+
+    // Create and send the buttons
+    const row = new ActionRowBuilder()
+        .addComponents(
+            new ButtonBuilder()
+                .setCustomId('pause')
+                .setLabel('Pause')
+                .setStyle(ButtonStyle.Primary)
+                .setEmoji('⏸️'),
+            new ButtonBuilder()
+                .setCustomId('resume')
+                .setLabel('Resume')
+                .setStyle(ButtonStyle.Primary)
+                .setEmoji('▶️'),
+            new ButtonBuilder()
+                .setCustomId('skip')
+                .setLabel('Skip')
+                .setStyle(ButtonStyle.Primary)
+                .setEmoji('⏭️'),
+            new ButtonBuilder()
+                .setCustomId('stop')
+                .setLabel('Stop')
+                .setStyle(ButtonStyle.Danger)
+                .setEmoji('🛑')
+        );
+
+    message.channel.send({
+        content: 'Controls:',
+        components: [row]
+    });
 }
 
 function skip(message, serverQueue) {
@@ -254,6 +286,32 @@ function stop(message, serverQueue) {
     queue.delete(message.guild.id);
 }
 
+function pause(message, serverQueue) {
+    if (!message.member.voice.channel) return message.channel.send('You need to be in a voice channel!');
+    if (!serverQueue || !serverQueue.player) return message.channel.send('There is no song playing to pause!');
+
+    if (!serverQueue.paused) {
+        serverQueue.player.pause(); // Pause the player
+        serverQueue.paused = true;
+        message.channel.send('Playback paused!');
+    } else {
+        message.channel.send('Playback is already paused!');
+    }
+}
+
+function resume(message, serverQueue) {
+    if (!message.member.voice.channel) return message.channel.send('You need to be in a voice channel!');
+    if (!serverQueue || !serverQueue.player) return message.channel.send('There is no song playing to resume!');
+
+    if (serverQueue.paused) {
+        serverQueue.player.unpause(); // Resume the player
+        serverQueue.paused = false;
+        message.channel.send('Playback resumed!');
+    } else {
+        message.channel.send('Playback is already playing!');
+    }
+}
+
 function play(guild, song) {
     const serverQueue = queue.get(guild.id);
 
@@ -271,7 +329,7 @@ function play(guild, song) {
     }
 
     const player = createAudioPlayer();
-    serverQueue.player = player; // Store the player in serverQueue
+    serverQueue.player = player;
 
     player.play(resource);
 
@@ -290,62 +348,5 @@ function play(guild, song) {
 
     player.on('error', (error) => console.error(error));
 }
-
-function pause(interaction, serverQueue) {
-    if (!serverQueue || !serverQueue.player) {
-        return interaction.reply('There is no music playing to pause!');
-    }
-    serverQueue.player.pause();
-}
-
-function resume(interaction, serverQueue) {
-    if (!serverQueue || !serverQueue.player) {
-        return interaction.reply('There is no music playing to resume!');
-    }
-    serverQueue.player.unpause();
-}
-
-function createControlButtons() {
-    return new ActionRowBuilder()
-        .addComponents(
-            new ButtonBuilder()
-                .setCustomId('play')
-                .setLabel('▶️ Play')
-                .setStyle(ButtonStyle.Primary),
-            new ButtonBuilder()
-                .setCustomId('pause')
-                .setLabel('⏸️ Pause')
-                .setStyle(ButtonStyle.Secondary),
-            new ButtonBuilder()
-                .setCustomId('stop')
-                .setLabel('🛑 Stop')
-                .setStyle(ButtonStyle.Danger),
-            new ButtonBuilder()
-                .setCustomId('skip')
-                .setLabel('⏭️ Skip')
-                .setStyle(ButtonStyle.Primary)
-        );
-}
-
-client.on('messageCreate', async message => {
-    if (message.author.bot) return;
-    if (!message.content.startsWith(prefix)) return;
-
-    const serverQueue = queue.get(message.guild.id);
-
-    if (message.content.startsWith(`${prefix}play`)) {
-        await execute(message, serverQueue);
-        message.channel.send({ content: 'Controls:', components: [createControlButtons()] });
-        return;
-    } else if (message.content.startsWith(`${prefix}skip`)) {
-        skip(message, serverQueue);
-        return;
-    } else if (message.content.startsWith(`${prefix}stop`)) {
-        stop(message, serverQueue);
-        return;
-    } else {
-        message.channel.send('You need to enter a valid command!');
-    }
-});
 
 client.login(token);

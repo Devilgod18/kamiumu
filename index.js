@@ -18,7 +18,7 @@ const client = new Client({
 });
 
 const queue = new Map();
-
+require('events').EventEmitter.defaultMaxListeners = 20;
 client.once('ready', () => {
     console.log('Ready!');
 });

@@ -60,40 +60,34 @@ client.on('interactionCreate', async interaction => {
 
     const serverQueue = queue.get(interaction.guild.id);
     if (!serverQueue) {
-        await interaction.reply('There is no song currently playing.');
+        await interaction.reply({ content: 'There is no song currently playing.', ephemeral: true });
         return;
     }
 
-    let responseMessage;
+    const currentSong = serverQueue.songs[0];
+
     switch (interaction.customId) {
         case 'pause':
             pause(interaction, serverQueue);
-            responseMessage = `Paused: ${serverQueue.songs[0].title}`;
             break;
         case 'play':
             playResume(interaction, serverQueue);
-            responseMessage = `Resumed: ${serverQueue.songs[0].title}`;
             break;
         case 'skip':
             skip(interaction, serverQueue);
-            responseMessage = `Skipped: ${serverQueue.songs[0].title}`;
             break;
         case 'stop':
             stop(interaction, serverQueue);
-            responseMessage = `Stopped playing: ${serverQueue.songs[0].title}`;
             break;
         case 'reverse':
             reverse(interaction, serverQueue);
-            responseMessage = `Reversed to: ${serverQueue.songs[0].title}`;
             break;
         default:
-            responseMessage = 'Unknown button action.';
+            await interaction.reply({ content: 'Unknown button action.', ephemeral: true });
             break;
     }
 
-    // Show current song and buttons again
-    const currentSongMessage = serverQueue.songs.length > 0 ? `Currently playing: ${serverQueue.songs[0].title}` : 'No song is currently playing.';
-
+    // Create button row
     const row = new ActionRowBuilder()
         .addComponents(
             new ButtonBuilder()
@@ -118,7 +112,15 @@ client.on('interactionCreate', async interaction => {
                 .setStyle(ButtonStyle.Secondary)
         );
 
-    await interaction.update({ content: `${responseMessage}\n${currentSongMessage}`, components: [row] });
+    // Update interaction message with the current song
+    try {
+        await interaction.update({ 
+            content: `Current song: ${currentSong.title}\nUse the buttons below to control the music:`,
+            components: [row] 
+        });
+    } catch (error) {
+        console.error('Failed to update interaction message:', error);
+    }
 });
 
 async function execute(message, serverQueue) {
@@ -215,6 +217,7 @@ async function execute(message, serverQueue) {
         message.channel.send(`${song.title} added to the queue!`);
     }
 
+    // Create button row
     const row = new ActionRowBuilder()
         .addComponents(
             new ButtonBuilder()
@@ -239,7 +242,10 @@ async function execute(message, serverQueue) {
                 .setStyle(ButtonStyle.Secondary)
         );
 
-    message.channel.send({ content: 'Use the buttons below to control the music:', components: [row] });
+    message.channel.send({ 
+        content: `Current song: ${song.title}\nUse the buttons below to control the music:`,
+        components: [row] 
+    });
 }
 
 function skip(interaction, serverQueue) {

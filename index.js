@@ -19,6 +19,7 @@ const client = new Client({
 
 const queue = new Map();
 require('events').EventEmitter.defaultMaxListeners = 20;
+
 client.once('ready', () => {
     console.log('Ready!');
 });
@@ -46,8 +47,8 @@ client.on('messageCreate', async message => {
     } else if (message.content.startsWith(`${prefix}stop`)) {
         stop(message, serverQueue);
         return;
-    } else if (message.content.startsWith(`${prefix}rewind`)) {
-        rewind(message, serverQueue);
+    } else if (message.content.startsWith(`${prefix}previous`)) { // New command
+        previous(message, serverQueue);
         return;
     } else {
         message.channel.send('You need to enter a valid command!');
@@ -70,7 +71,7 @@ async function execute(message, serverQueue) {
         voiceChannel: voiceChannel,
         connection: null,
         songs: [],
-        lastSong: null, // Track the last song played
+        previousSongs: [], // Add this line
         volume: 5,
         playing: true,
         isPlayingSoundCloud: false
@@ -182,7 +183,7 @@ async function execute(message, serverQueue) {
                                 entersState(connection, VoiceConnectionStatus.Signalling, 5_000),
                                 entersState(connection, VoiceConnectionStatus.Connecting, 5_000),
                             ]);
-                        } catch (err) {
+                        } catch (error) {
                             queue.delete(message.guild.id);
                             connection.destroy();
                         }
@@ -223,20 +224,28 @@ function stop(message, serverQueue) {
     if (!serverQueue) return message.channel.send('There is no song to stop!');
 
     serverQueue.songs = [];
-    serverQueue.lastSong = null; // Clear last song when stopping
     if (serverQueue.connection) serverQueue.connection.destroy();
     queue.delete(message.guild.id);
 }
 
-function rewind(message, serverQueue) {
+function previous(message, serverQueue) {
     if (!message.member.voice.channel) return message.channel.send('You need to be in a voice channel!');
-    if (!serverQueue) return message.channel.send('There is no song to rewind to!');
-    if (!serverQueue.lastSong) return message.channel.send('No previous song to rewind to!');
+    if (!serverQueue) return message.channel.send('There is no song to go back to!');
 
-    serverQueue.songs.unshift(serverQueue.lastSong); // Add the last song back to the front of the queue
-    serverQueue.lastSong = null; // Clear last song
+    if (serverQueue.previousSongs.length === 0) {
+        return message.channel.send('There is no previous song in the queue!');
+    }
+
+    // Move the current song to the previous songs array
+    const currentSong = serverQueue.songs.shift();
+    serverQueue.previousSongs.push(currentSong);
+
+    // Get the last song from the previous songs array
+    const previousSong = serverQueue.previousSongs.pop();
+    serverQueue.songs.unshift(previousSong);
+
     play(message.guild, serverQueue.songs[0]);
-    message.channel.send('Rewound to the previous song!');
+    message.channel.send(`Reverted to previous song: ${previousSong.title}`);
 }
 
 function play(guild, song) {
@@ -256,14 +265,12 @@ function play(guild, song) {
     }
 
     const player = createAudioPlayer();
-
     player.play(resource);
-
     serverQueue.connection.subscribe(player);
 
     player.on(AudioPlayerStatus.Idle, () => {
         console.log('Music ended!');
-        serverQueue.lastSong = serverQueue.songs.shift(); // Save current song as last song
+        serverQueue.songs.shift();
         if (serverQueue.songs.length > 0) {
             play(guild, serverQueue.songs[0]);
         } else {

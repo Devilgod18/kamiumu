@@ -110,101 +110,109 @@ async function execute(message, serverQueue) {
     };
 
     let song = null;
-    if (args[0].includes('soundcloud.com')) {
-        const trackInfo = await scdl.getInfo(args[0], SOUNDCLOUD_CLIENT_ID);
-        const track = await scdl.downloadFormat(trackInfo.permalink_url, scdl.FORMATS.OPUS, SOUNDCLOUD_CLIENT_ID);
-        song = {
-            title: trackInfo.title,
-            url: track,
-            source: 'soundcloud'
-        };
-    } else if (ytpl.validateID(searchString)) {
-        const playlist = await ytpl(searchString);
-        for (const video of playlist.items) {
-            const song = {
-                title: video.title,
-                url: video.shortUrl,
-                source: 'youtube'
+    try {
+        if (args[0].includes('soundcloud.com')) {
+            const trackInfo = await scdl.getInfo(args[0], SOUNDCLOUD_CLIENT_ID);
+            const track = await scdl.downloadFormat(trackInfo.permalink_url, scdl.FORMATS.OPUS, SOUNDCLOUD_CLIENT_ID);
+            song = {
+                title: trackInfo.title,
+                url: track,
+                source: 'soundcloud'
             };
-            if (!serverQueue) {
-                queue.set(message.guild.id, queueContruct);
-                queueContruct.songs.push(song);
-            } else {
-                serverQueue.songs.push(song);
-                message.channel.send(`${song.title} added to the queue!`);
+        } else if (ytpl.validateID(searchString)) {
+            const playlist = await ytpl(searchString);
+            if (playlist.items.length === 0) {
+                return message.channel.send('Playlist is empty!');
             }
-        }
-        message.channel.send(`${playlist.items.length} Song playlist added to the queue!`);
-    } else {
-        try {
+            for (const video of playlist.items) {
+                const song = {
+                    title: video.title,
+                    url: video.shortUrl,
+                    source: 'youtube'
+                };
+                if (!serverQueue) {
+                    queue.set(message.guild.id, queueContruct);
+                    queueContruct.songs.push(song);
+                } else {
+                    serverQueue.songs.push(song);
+                    message.channel.send(`${song.title} added to the queue!`);
+                }
+            }
+            message.channel.send(`${playlist.items.length} Song playlist added to the queue!`);
+        } else {
             const songInfo = await ytdl.getInfo(searchString);
             song = {
                 title: songInfo.videoDetails.title,
                 url: songInfo.videoDetails.video_url,
                 source: 'youtube'
             };
-        } catch (err) {
-            message.channel.send('Error: Invalid YouTube URL');
         }
-    }
 
-    if (!serverQueue) {
-        queue.set(message.guild.id, queueContruct);
-        queueContruct.songs.push(song);
-        try {
-            const connection = joinVoiceChannel({
-                channelId: voiceChannel.id,
-                guildId: message.guild.id,
-                adapterCreator: message.guild.voiceAdapterCreator
-            });
-            queueContruct.connection = connection;
-            connection.on(VoiceConnectionStatus.Disconnected, async () => {
-                try {
-                    await Promise.race([
-                        entersState(connection, VoiceConnectionStatus.Signalling, 5_000),
-                        entersState(connection, VoiceConnectionStatus.Connecting, 5_000),
-                    ]);
-                } catch (error) {
-                    queue.delete(message.guild.id);
-                    connection.destroy();
-                }
-            });
-            play(message.guild, queueContruct.songs[0]);
-        } catch (err) {
-            console.log(err);
-            queue.delete(message.guild.id);
-            return message.channel.send(err.message);
+        if (!song) {
+            return message.channel.send('Error: No valid song found');
         }
-    } else {
-        serverQueue.songs.push(song);
-        message.channel.send(`${song.title} added to the queue!`);
+
+        if (!serverQueue) {
+            queue.set(message.guild.id, queueContruct);
+            queueContruct.songs.push(song);
+            try {
+                const connection = joinVoiceChannel({
+                    channelId: voiceChannel.id,
+                    guildId: message.guild.id,
+                    adapterCreator: message.guild.voiceAdapterCreator
+                });
+                queueContruct.connection = connection;
+                connection.on(VoiceConnectionStatus.Disconnected, async () => {
+                    try {
+                        await Promise.race([
+                            entersState(connection, VoiceConnectionStatus.Signalling, 5_000),
+                            entersState(connection, VoiceConnectionStatus.Connecting, 5_000),
+                        ]);
+                    } catch (error) {
+                        queue.delete(message.guild.id);
+                        connection.destroy();
+                    }
+                });
+                play(message.guild, queueContruct.songs[0]);
+            } catch (err) {
+                console.log(err);
+                queue.delete(message.guild.id);
+                return message.channel.send('Failed to join the voice channel.');
+            }
+        } else {
+            serverQueue.songs.push(song);
+            message.channel.send(`${song.title} added to the queue!`);
+        }
+
+        const row = new ActionRowBuilder()
+        .addComponents(
+            new ButtonBuilder()
+                .setCustomId('pause')
+                .setEmoji('⏸️') // Pause emoji
+                .setStyle(ButtonStyle.Primary),
+            new ButtonBuilder()
+                .setCustomId('play')
+                .setEmoji('▶️') // Play emoji
+                .setStyle(ButtonStyle.Success),
+            new ButtonBuilder()
+                .setCustomId('stop')
+                .setEmoji('⏹️') // Stop emoji
+                .setStyle(ButtonStyle.Danger),
+            new ButtonBuilder()
+                .setCustomId('reverse')
+                .setEmoji('⏪') // Rewind emoji for reverse
+                .setStyle(ButtonStyle.Primary),
+            new ButtonBuilder()
+                .setCustomId('skip')
+                .setEmoji('⏩') // Skip emoji
+                .setStyle(ButtonStyle.Secondary)
+        );
+
+        message.channel.send({ content: 'Use the buttons below to control the music:', components: [row] });
+    } catch (error) {
+        console.error(error);
+        message.channel.send('There was an error processing your request.');
     }
-
-    const row = new ActionRowBuilder()
-    .addComponents(
-        new ButtonBuilder()
-            .setCustomId('pause')
-            .setEmoji('⏸️') // Pause emoji
-            .setStyle(ButtonStyle.Primary),
-        new ButtonBuilder()
-            .setCustomId('play')
-            .setEmoji('▶️') // Play emoji
-            .setStyle(ButtonStyle.Success),
-        new ButtonBuilder()
-            .setCustomId('stop')
-            .setEmoji('⏹️') // Stop emoji
-            .setStyle(ButtonStyle.Danger),
-        new ButtonBuilder()
-            .setCustomId('reverse')
-            .setEmoji('⏪') // Rewind emoji for reverse
-            .setStyle(ButtonStyle.Primary),
-        new ButtonBuilder()
-            .setCustomId('skip')
-            .setEmoji('⏩') // Skip emoji
-            .setStyle(ButtonStyle.Secondary)
-    );
-
-    message.channel.send({ content: 'Use the buttons below to control the music:', components: [row] });
 }
 
 function skip(interaction, serverQueue) {
@@ -259,28 +267,32 @@ function play(guild, song) {
     }
 
     let resource;
-    if (song.source === 'youtube') {
-        resource = createAudioResource(ytdl(song.url, { filter: 'audioonly', quality: 'highestaudio', highWaterMark: 1 << 25 }));
-    } else if (song.source === 'soundcloud') {
-        resource = createAudioResource(song.url);
-    }
-
-    serverQueue.player.play(resource);
-    serverQueue.connection.subscribe(serverQueue.player);
-
-    serverQueue.player.on(AudioPlayerStatus.Idle, () => {
-        console.log('Music ended!');
-        serverQueue.songHistory.push(serverQueue.songs[0]); // Add current song to history
-        serverQueue.songs.shift();
-        if (serverQueue.songs.length > 0) {
-            play(guild, serverQueue.songs[0]);
-        } else {
-            serverQueue.connection.destroy();
-            queue.delete(guild.id);
+    try {
+        if (song.source === 'youtube') {
+            resource = createAudioResource(ytdl(song.url, { filter: 'audioonly', quality: 'highestaudio', highWaterMark: 1 << 25 }));
+        } else if (song.source === 'soundcloud') {
+            resource = createAudioResource(song.url);
         }
-    });
 
-    serverQueue.player.on('error', (error) => console.error(error));
+        serverQueue.player.play(resource);
+        serverQueue.connection.subscribe(serverQueue.player);
+
+        serverQueue.player.on(AudioPlayerStatus.Idle, () => {
+            console.log('Music ended!');
+            serverQueue.songHistory.push(serverQueue.songs[0]); // Add current song to history
+            serverQueue.songs.shift();
+            if (serverQueue.songs.length > 0) {
+                play(guild, serverQueue.songs[0]);
+            } else {
+                serverQueue.connection.destroy();
+                queue.delete(guild.id);
+            }
+        });
+
+        serverQueue.player.on('error', (error) => console.error('Error playing audio:', error));
+    } catch (error) {
+        console.error('Error creating audio resource:', error);
+    }
 }
 
 function pause(interaction, serverQueue) {

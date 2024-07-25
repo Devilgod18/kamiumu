@@ -47,6 +47,9 @@ client.on('messageCreate', async message => {
     } else if (message.content.startsWith(`${prefix}stop`)) {
         stop(message, serverQueue);
         return;
+    } else if (message.content.startsWith(`${prefix}reverse`)) {
+        reverse(message, serverQueue);
+        return;
     } else {
         message.channel.send('You need to enter a valid command!');
     }
@@ -70,6 +73,12 @@ client.on('interactionCreate', async interaction => {
             break;
         case 'skip':
             skip(interaction, serverQueue);
+            break;
+        case 'stop':
+            stop(interaction, serverQueue);
+            break;
+        case 'reverse':
+            reverse(interaction, serverQueue);
             break;
         default:
             interaction.reply('Unknown button action.');
@@ -96,7 +105,8 @@ async function execute(message, serverQueue) {
         volume: 5,
         playing: true,
         isPlayingSoundCloud: false,
-        player: createAudioPlayer()
+        player: createAudioPlayer(),
+        songHistory: []
     };
 
     let song = null;
@@ -184,33 +194,59 @@ async function execute(message, serverQueue) {
                 .setCustomId('skip')
                 .setLabel('Skip')
                 .setStyle(ButtonStyle.Secondary),
+            new ButtonBuilder()
+                .setCustomId('stop')
+                .setLabel('Stop')
+                .setStyle(ButtonStyle.Danger),
+            new ButtonBuilder()
+                .setCustomId('reverse')
+                .setLabel('Reverse')
+                .setStyle(ButtonStyle.Primary)
         );
 
     message.channel.send({ content: 'Use the buttons below to control the music:', components: [row] });
 }
 
-function skip(message, serverQueue) {
-    if (!message.member.voice.channel) return message.channel.send('You need to be in a voice channel!');
-    if (!serverQueue) return message.channel.send('There is no song to skip!');
+function skip(interaction, serverQueue) {
+    if (!interaction.member.voice.channel) return interaction.reply('You need to be in a voice channel!');
+    if (!serverQueue) return interaction.reply('There is no song to skip!');
 
+    const currentSong = serverQueue.songs[0];
+    serverQueue.songHistory.push(currentSong); // Add current song to history
     serverQueue.songs.shift();
     if (serverQueue.songs.length === 0) {
         if (serverQueue.connection) serverQueue.connection.destroy();
-        queue.delete(message.guild.id);
+        queue.delete(interaction.guild.id);
     } else {
-        play(message.guild, serverQueue.songs[0]);
+        play(interaction.guild, serverQueue.songs[0]);
     }
 
-    message.channel.send(`${serverQueue.songs.length} song(s) in queue!`);
+    interaction.reply(`Skipped: ${currentSong.title}. Now playing: ${serverQueue.songs[0] ? serverQueue.songs[0].title : 'nothing'}.`);
 }
 
-function stop(message, serverQueue) {
-    if (!message.member.voice.channel) return message.channel.send('You need to be in a voice channel!');
-    if (!serverQueue) return message.channel.send('There is no song to stop!');
+function stop(interaction, serverQueue) {
+    if (!interaction.member.voice.channel) return interaction.reply('You need to be in a voice channel!');
+    if (!serverQueue) return interaction.reply('There is no song to stop!');
 
+    const currentSong = serverQueue.songs[0];
     serverQueue.songs = [];
     if (serverQueue.connection) serverQueue.connection.destroy();
-    queue.delete(message.guild.id);
+    queue.delete(interaction.guild.id);
+    interaction.reply(`Stopped playing: ${currentSong.title}`);
+}
+
+function reverse(interaction, serverQueue) {
+    if (!interaction.member.voice.channel) return interaction.reply('You need to be in a voice channel!');
+    if (!serverQueue) return interaction.reply('There is no song to reverse to!');
+
+    const lastSong = serverQueue.songHistory.pop(); // Get the last song from history
+    if (lastSong) {
+        serverQueue.songs.unshift(lastSong); // Add the last song to the front of the queue
+        play(interaction.guild, lastSong);
+        interaction.reply(`Reversed to: ${lastSong.title}`);
+    } else {
+        interaction.reply('No previous song to reverse to!');
+    }
 }
 
 function play(guild, song) {
@@ -230,11 +266,11 @@ function play(guild, song) {
     }
 
     serverQueue.player.play(resource);
-
     serverQueue.connection.subscribe(serverQueue.player);
 
     serverQueue.player.on(AudioPlayerStatus.Idle, () => {
         console.log('Music ended!');
+        serverQueue.songHistory.push(serverQueue.songs[0]); // Add current song to history
         serverQueue.songs.shift();
         if (serverQueue.songs.length > 0) {
             play(guild, serverQueue.songs[0]);
@@ -250,16 +286,16 @@ function play(guild, song) {
 function pause(interaction, serverQueue) {
     if (serverQueue.player.state.status === AudioPlayerStatus.Playing) {
         serverQueue.player.pause();
-        interaction.reply('Music paused!');
+        interaction.reply('Paused the current song.');
     } else {
-        interaction.reply('Music is not playing!');
+        interaction.reply('The song is already paused!');
     }
 }
 
 function playResume(interaction, serverQueue) {
     if (serverQueue.player.state.status === AudioPlayerStatus.Paused) {
         serverQueue.player.unpause();
-        interaction.reply('Music resumed!');
+        interaction.reply('Resumed the current song.');
     } else {
         interaction.reply('Music is already playing!');
     }

@@ -86,34 +86,6 @@ client.on('interactionCreate', async interaction => {
     }
 });
 
-async function sendControlButtons(message) {
-    const row = new ActionRowBuilder()
-        .addComponents(
-            new ButtonBuilder()
-                .setCustomId('pause')
-                .setEmoji('⏸️') // Pause emoji
-                .setStyle(ButtonStyle.Primary),
-            new ButtonBuilder()
-                .setCustomId('play')
-                .setEmoji('▶️') // Play emoji
-                .setStyle(ButtonStyle.Success),
-            new ButtonBuilder()
-                .setCustomId('stop')
-                .setEmoji('⏹️') // Stop emoji
-                .setStyle(ButtonStyle.Danger),
-            new ButtonBuilder()
-                .setCustomId('reverse')
-                .setEmoji('⏪') // Rewind emoji for reverse
-                .setStyle(ButtonStyle.Primary),
-            new ButtonBuilder()
-                .setCustomId('skip')
-                .setEmoji('⏩') // Skip emoji
-                .setStyle(ButtonStyle.Secondary)
-        );
-
-    await message.channel.send({ content: 'Use the buttons below to control the music:', components: [row] });
-}
-
 async function execute(message, serverQueue) {
     const args = message.content.split(' ').slice(1);
     const searchString = args.join(' ');
@@ -197,7 +169,7 @@ async function execute(message, serverQueue) {
                     connection.destroy();
                 }
             });
-            play(message.guild, queueContruct.songs[0]);
+            await play(message.guild, queueContruct.songs[0]);
         } catch (err) {
             console.log(err);
             queue.delete(message.guild.id);
@@ -207,57 +179,9 @@ async function execute(message, serverQueue) {
         serverQueue.songs.push(song);
         message.channel.send(`${song.title} added to the queue!`);
     }
-
-    await sendControlButtons(message); // Send the button row after adding the song
 }
 
-async function skip(interaction, serverQueue) {
-    if (!interaction.member.voice.channel) return interaction.reply('You need to be in a voice channel!');
-    if (!serverQueue) return interaction.reply('There is no song to skip!');
-
-    const currentSong = serverQueue.songs[0];
-    serverQueue.songHistory.push(currentSong); // Add current song to history
-    serverQueue.songs.shift();
-    if (serverQueue.songs.length === 0) {
-        if (serverQueue.connection) serverQueue.connection.destroy();
-        queue.delete(interaction.guild.id);
-    } else {
-        play(interaction.guild, serverQueue.songs[0]);
-    }
-
-    await interaction.reply(`Skipped: ${currentSong.title}. Now playing: ${serverQueue.songs[0] ? serverQueue.songs[0].title : 'nothing'}.`);
-    await sendControlButtons(interaction.message); // Send the button row again
-}
-
-async function stop(interaction, serverQueue) {
-    if (!interaction.member.voice.channel) return interaction.reply('You need to be in a voice channel!');
-    if (!serverQueue) return interaction.reply('There is no song to stop!');
-
-    const currentSong = serverQueue.songs[0];
-    serverQueue.songs = [];
-    if (serverQueue.connection) serverQueue.connection.destroy();
-    queue.delete(interaction.guild.id);
-    await interaction.reply(`Stopped playing: ${currentSong.title}`);
-    await sendControlButtons(interaction.message); // Send the button row again
-}
-
-async function reverse(interaction, serverQueue) {
-    if (!interaction.member.voice.channel) return interaction.reply('You need to be in a voice channel!');
-    if (!serverQueue) return interaction.reply('There is no song to reverse to!');
-
-    const lastSong = serverQueue.songHistory.pop(); // Get the last song from history
-    if (lastSong) {
-        serverQueue.songs.unshift(lastSong); // Add the last song to the front of the queue
-        play(interaction.guild, lastSong);
-        await interaction.reply(`Reversed to: ${lastSong.title}`);
-    } else {
-        await interaction.reply('No previous song to reverse to!');
-    }
-
-    await sendControlButtons(interaction.message); // Send the button row again
-}
-
-function play(guild, song) {
+async function play(guild, song) {
     const serverQueue = queue.get(guild.id);
 
     if (!song) {
@@ -281,7 +205,7 @@ function play(guild, song) {
         serverQueue.songHistory.push(serverQueue.songs[0]); // Add current song to history
         serverQueue.songs.shift();
         if (serverQueue.songs.length > 0) {
-            play(guild, serverQueue.songs[0]);
+            await play(guild, serverQueue.songs[0]);
         } else {
             serverQueue.connection.destroy();
             queue.delete(guild.id);
@@ -291,7 +215,91 @@ function play(guild, song) {
     serverQueue.player.on('error', (error) => console.error(error));
 
     // Send control buttons after the song starts playing
-    serverQueue.textChannel.send({ content: `Now playing: ${song.title}`, components: [await sendControlButtons(serverQueue.textChannel)] });
+    const row = new ActionRowBuilder()
+    .addComponents(
+        new ButtonBuilder()
+            .setCustomId('pause')
+            .setEmoji('⏸️') // Pause emoji
+            .setStyle(ButtonStyle.Primary),
+        new ButtonBuilder()
+            .setCustomId('play')
+            .setEmoji('▶️') // Play emoji
+            .setStyle(ButtonStyle.Success),
+        new ButtonBuilder()
+            .setCustomId('stop')
+            .setEmoji('⏹️') // Stop emoji
+            .setStyle(ButtonStyle.Danger),
+        new ButtonBuilder()
+            .setCustomId('reverse')
+            .setEmoji('⏪') // Rewind emoji for reverse
+            .setStyle(ButtonStyle.Primary),
+        new ButtonBuilder()
+            .setCustomId('skip')
+            .setEmoji('⏩') // Skip emoji
+            .setStyle(ButtonStyle.Secondary)
+    );
+
+    await serverQueue.textChannel.send({ content: `Now playing: ${song.title}`, components: [row] });
+}
+
+function skip(interaction, serverQueue) {
+    if (!interaction.member.voice.channel) return interaction.reply('You need to be in a voice channel!');
+    if (!serverQueue) return interaction.reply('There is no song to skip!');
+
+    const currentSong = serverQueue.songs[0];
+    serverQueue.songHistory.push(currentSong); // Add current song to history
+    serverQueue.songs.shift();
+    if (serverQueue.songs.length === 0) {
+        if (serverQueue.connection) serverQueue.connection.destroy();
+        queue.delete(interaction.guild.id);
+    } else {
+        play(interaction.guild, serverQueue.songs[0]);
+    }
+
+    interaction.reply(`Skipped: ${currentSong.title}. Now playing: ${serverQueue.songs[0] ? serverQueue.songs[0].title : 'nothing'}.`);
+}
+
+function stop(interaction, serverQueue) {
+    if (!interaction.member.voice.channel) return interaction.reply('You need to be in a voice channel!');
+    if (!serverQueue) return interaction.reply('There is no song to stop!');
+
+    const currentSong = serverQueue.songs[0];
+    serverQueue.songs = [];
+    if (serverQueue.connection) serverQueue.connection.destroy();
+    queue.delete(interaction.guild.id);
+    interaction.reply(`Stopped playing: ${currentSong.title}`);
+}
+
+function reverse(interaction, serverQueue) {
+    if (!interaction.member.voice.channel) return interaction.reply('You need to be in a voice channel!');
+    if (!serverQueue) return interaction.reply('There is no song to reverse to!');
+
+    const lastSong = serverQueue.songHistory.pop(); // Get the last song from history
+    if (lastSong) {
+        serverQueue.songs.unshift(lastSong); // Add the last song to the front of the queue
+        play(interaction.guild, lastSong);
+        interaction.reply(`Reversed to: ${lastSong.title}`);
+    } else {
+        interaction.reply('No previous song to reverse to!');
+    }
+}
+
+function pause(interaction, serverQueue) {
+    if (serverQueue.player.state.status === AudioPlayerStatus.Playing) {
+        serverQueue.player.pause();
+        interaction.reply('Paused the current song.');
+    } else {
+        interaction.reply('The song is already paused!');
+    }
+}
+
+function playResume(interaction, serverQueue) {
+    if (serverQueue.player.state.status === AudioPlayerStatus.Paused) {
+        serverQueue.player.unpause();
+        interaction.reply('Resumed the current song.');
+    } else {
+        interaction.reply('Music is already playing!');
+    }
 }
 
 client.login(token);

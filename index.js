@@ -184,23 +184,23 @@ async function execute(message, serverQueue) {
     .addComponents(
         new ButtonBuilder()
             .setCustomId('pause')
-            .setLabel('Pause')
+            .setEmoji('⏸️') // Pause emoji
             .setStyle(ButtonStyle.Primary),
         new ButtonBuilder()
             .setCustomId('play')
-            .setLabel('Play')
+            .setEmoji('▶️') // Play emoji
             .setStyle(ButtonStyle.Success),
         new ButtonBuilder()
             .setCustomId('stop')
-            .setLabel('Stop')
+            .setEmoji('⏹️') // Stop emoji
             .setStyle(ButtonStyle.Danger),
         new ButtonBuilder()
             .setCustomId('reverse')
-            .setLabel('Reverse')
+            .setEmoji('⏪') // Rewind emoji for reverse
             .setStyle(ButtonStyle.Primary),
         new ButtonBuilder()
             .setCustomId('skip')
-            .setLabel('Skip')
+            .setEmoji('⏩') // Skip emoji
             .setStyle(ButtonStyle.Secondary)
     );
 

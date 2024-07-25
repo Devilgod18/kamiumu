@@ -110,43 +110,42 @@ async function execute(message, serverQueue) {
     };
 
     let song = null;
-    try {
-        if (args[0].includes('soundcloud.com')) {
-            const trackInfo = await scdl.getInfo(args[0], SOUNDCLOUD_CLIENT_ID);
-            const track = await scdl.downloadFormat(trackInfo.permalink_url, scdl.FORMATS.OPUS, SOUNDCLOUD_CLIENT_ID);
-            song = {
-                title: trackInfo.title,
-                url: track,
-                source: 'soundcloud'
+    if (args[0].includes('soundcloud.com')) {
+        const trackInfo = await scdl.getInfo(args[0], SOUNDCLOUD_CLIENT_ID);
+        const track = await scdl.downloadFormat(trackInfo.permalink_url, scdl.FORMATS.OPUS, SOUNDCLOUD_CLIENT_ID);
+        song = {
+            title: trackInfo.title,
+            url: track,
+            source: 'soundcloud'
+        };
+    } else if (ytpl.validateID(searchString)) {
+        const playlist = await ytpl(searchString);
+        for (const video of playlist.items) {
+            const song = {
+                title: video.title,
+                url: video.shortUrl,
+                source: 'youtube'
             };
-        } else if (ytpl.validateID(searchString)) {
-            const playlist = await ytpl(searchString);
-            for (const video of playlist.items) {
-                const song = {
-                    title: video.title,
-                    url: video.shortUrl,
-                    source: 'youtube'
-                };
-                if (!serverQueue) {
-                    queue.set(message.guild.id, queueContruct);
-                    queueContruct.songs.push(song);
-                } else {
-                    serverQueue.songs.push(song);
-                    message.channel.send(`${song.title} added to the queue!`);
-                }
+            if (!serverQueue) {
+                queue.set(message.guild.id, queueContruct);
+                queueContruct.songs.push(song);
+            } else {
+                serverQueue.songs.push(song);
+                message.channel.send(`${song.title} added to the queue!`);
             }
-            message.channel.send(`${playlist.items.length} Song playlist added to the queue!`);
-            return;
-        } else {
+        }
+        message.channel.send(`${playlist.items.length} Song playlist added to the queue!`);
+    } else {
+        try {
             const songInfo = await ytdl.getInfo(searchString);
             song = {
                 title: songInfo.videoDetails.title,
                 url: songInfo.videoDetails.video_url,
                 source: 'youtube'
             };
+        } catch (err) {
+            message.channel.send('Error: Invalid YouTube URL');
         }
-    } catch (err) {
-        return message.channel.send('Error: Invalid URL or issue retrieving song.');
     }
 
     if (!serverQueue) {
@@ -170,86 +169,42 @@ async function execute(message, serverQueue) {
                     connection.destroy();
                 }
             });
-            await play(message.guild, queueContruct.songs[0]);
+            play(message.guild, queueContruct.songs[0]);
         } catch (err) {
             console.log(err);
             queue.delete(message.guild.id);
-            return message.channel.send('Error connecting to the voice channel.');
+            return message.channel.send(err.message);
         }
     } else {
         serverQueue.songs.push(song);
         message.channel.send(`${song.title} added to the queue!`);
     }
-}
 
-async function play(guild, song) {
-    const serverQueue = queue.get(guild.id);
-
-    if (!song) {
-        if (serverQueue.connection) serverQueue.connection.destroy();
-        queue.delete(guild.id);
-        return;
-    }
-
-    let resource;
-    try {
-        if (song.source === 'youtube') {
-            resource = createAudioResource(ytdl(song.url, { filter: 'audioonly', quality: 'highestaudio', highWaterMark: 1 << 25 }));
-        } else if (song.source === 'soundcloud') {
-            resource = createAudioResource(song.url);
-        }
-    } catch (error) {
-        console.error('Error creating audio resource:', error);
-        return;
-    }
-
-    serverQueue.player.play(resource);
-    serverQueue.connection.subscribe(serverQueue.player);
-
-    serverQueue.player.on(AudioPlayerStatus.Idle, async () => {
-        console.log('Music ended!');
-        serverQueue.songHistory.push(serverQueue.songs[0]); // Add current song to history
-        serverQueue.songs.shift();
-        if (serverQueue.songs.length > 0) {
-            await play(guild, serverQueue.songs[0]);
-        } else {
-            serverQueue.connection.destroy();
-            queue.delete(guild.id);
-        }
-    });
-
-    serverQueue.player.on('error', (error) => console.error('Error in audio player:', error));
-
-    // Send control buttons after the song starts playing
     const row = new ActionRowBuilder()
-        .addComponents(
-            new ButtonBuilder()
-                .setCustomId('pause')
-                .setEmoji('⏸️') // Pause emoji
-                .setStyle(ButtonStyle.Primary),
-            new ButtonBuilder()
-                .setCustomId('play')
-                .setEmoji('▶️') // Play emoji
-                .setStyle(ButtonStyle.Success),
-            new ButtonBuilder()
-                .setCustomId('stop')
-                .setEmoji('⏹️') // Stop emoji
-                .setStyle(ButtonStyle.Danger),
-            new ButtonBuilder()
-                .setCustomId('reverse')
-                .setEmoji('⏪') // Rewind emoji for reverse
-                .setStyle(ButtonStyle.Primary),
-            new ButtonBuilder()
-                .setCustomId('skip')
-                .setEmoji('⏩') // Skip emoji
-                .setStyle(ButtonStyle.Secondary)
-        );
+    .addComponents(
+        new ButtonBuilder()
+            .setCustomId('pause')
+            .setEmoji('⏸️') // Pause emoji
+            .setStyle(ButtonStyle.Primary),
+        new ButtonBuilder()
+            .setCustomId('play')
+            .setEmoji('▶️') // Play emoji
+            .setStyle(ButtonStyle.Success),
+        new ButtonBuilder()
+            .setCustomId('stop')
+            .setEmoji('⏹️') // Stop emoji
+            .setStyle(ButtonStyle.Danger),
+        new ButtonBuilder()
+            .setCustomId('reverse')
+            .setEmoji('⏪') // Rewind emoji for reverse
+            .setStyle(ButtonStyle.Primary),
+        new ButtonBuilder()
+            .setCustomId('skip')
+            .setEmoji('⏩') // Skip emoji
+            .setStyle(ButtonStyle.Secondary)
+    );
 
-    try {
-        await serverQueue.textChannel.send({ content: 'Use the buttons below to control the music:', components: [row] });
-    } catch (error) {
-        console.error('Error sending control buttons:', error);
-    }
+    message.channel.send({ content: 'Use the buttons below to control the music:', components: [row] });
 }
 
 function skip(interaction, serverQueue) {
@@ -292,6 +247,40 @@ function reverse(interaction, serverQueue) {
     } else {
         interaction.reply('No previous song to reverse to!');
     }
+}
+
+function play(guild, song) {
+    const serverQueue = queue.get(guild.id);
+
+    if (!song) {
+        if (serverQueue.connection) serverQueue.connection.destroy();
+        queue.delete(guild.id);
+        return;
+    }
+
+    let resource;
+    if (song.source === 'youtube') {
+        resource = createAudioResource(ytdl(song.url, { filter: 'audioonly', quality: 'highestaudio', highWaterMark: 1 << 25 }));
+    } else if (song.source === 'soundcloud') {
+        resource = createAudioResource(song.url);
+    }
+
+    serverQueue.player.play(resource);
+    serverQueue.connection.subscribe(serverQueue.player);
+
+    serverQueue.player.on(AudioPlayerStatus.Idle, () => {
+        console.log('Music ended!');
+        serverQueue.songHistory.push(serverQueue.songs[0]); // Add current song to history
+        serverQueue.songs.shift();
+        if (serverQueue.songs.length > 0) {
+            play(guild, serverQueue.songs[0]);
+        } else {
+            serverQueue.connection.destroy();
+            queue.delete(guild.id);
+        }
+    });
+
+    serverQueue.player.on('error', (error) => console.error(error));
 }
 
 function pause(interaction, serverQueue) {

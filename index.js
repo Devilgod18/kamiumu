@@ -237,21 +237,25 @@ function play(guild, song) {
         return;
     }
 
-    serverQueue.player.play(resource);
-    serverQueue.connection.subscribe(serverQueue.player);
+    if (serverQueue.player && serverQueue.connection) {
+        serverQueue.player.play(resource);
+        serverQueue.connection.subscribe(serverQueue.player);
 
-    serverQueue.player.on(AudioPlayerStatus.Idle, () => {
-        console.log('Music ended!');
-        serverQueue.songs.shift();
-        if (serverQueue.songs.length > 0) {
-            play(guild, serverQueue.songs[0]);
-        } else {
-            serverQueue.connection.destroy();
-            queue.delete(guild.id);
-        }
-    });
+        serverQueue.player.on(AudioPlayerStatus.Idle, () => {
+            console.log('Music ended!');
+            serverQueue.songs.shift();
+            if (serverQueue.songs.length > 0) {
+                play(guild, serverQueue.songs[0]);
+            } else {
+                serverQueue.connection.destroy();
+                queue.delete(guild.id);
+            }
+        });
 
-    serverQueue.player.on('error', (error) => console.error('AudioPlayer error:', error));
+        serverQueue.player.on('error', (error) => console.error('AudioPlayer error:', error));
+    } else {
+        console.error('Player or connection is null');
+    }
 }
 
 function pause(interaction, serverQueue) {
@@ -271,5 +275,9 @@ function playResume(interaction, serverQueue) {
         interaction.reply('Music is already playing!');
     }
 }
+
+client.on('error', (error) => {
+    console.error('Client error:', error);
+});
 
 client.login(token);

@@ -48,6 +48,8 @@ client.on('messageCreate', async message => {
         pause(message, serverQueue);
     } else if (message.content.startsWith(`${prefix}resume`)) {
         resume(message, serverQueue);
+    } else if (message.content.startsWith(`${prefix}reverse`)) {
+        reverse(message, serverQueue);
     } else {
         message.channel.send('You need to enter a valid command!');
     }
@@ -79,6 +81,10 @@ client.on(Events.InteractionCreate, async interaction => {
             stop(interaction.message, serverQueue);
             await interaction.reply({ content: 'Playback stopped!', ephemeral: true });
             break;
+        case 'reverse':
+            reverse(interaction.message, serverQueue);
+            await interaction.reply({ content: 'Reversed to the previous song!', ephemeral: true });
+            break;
     }
 });
 
@@ -102,7 +108,8 @@ async function execute(message, serverQueue) {
         playing: true,
         isPlayingSoundCloud: false,
         player: null,
-        paused: false
+        paused: false,
+        previousSong: null
     };
 
     let song = null;
@@ -245,15 +252,20 @@ async function execute(message, serverQueue) {
                 .setStyle(ButtonStyle.Primary)
                 .setEmoji('▶️'),
             new ButtonBuilder()
-                .setCustomId('skip')
-                .setLabel('Skip')
-                .setStyle(ButtonStyle.Primary)
-                .setEmoji('⏭️'),
-            new ButtonBuilder()
                 .setCustomId('stop')
                 .setLabel('Stop')
                 .setStyle(ButtonStyle.Danger)
-                .setEmoji('🛑')
+                .setEmoji('🛑'),
+            new ButtonBuilder()
+                .setCustomId('reverse')
+                .setLabel('Reverse')
+                .setStyle(ButtonStyle.Secondary)
+                .setEmoji('⏮️'),
+            new ButtonBuilder()
+                .setCustomId('skip')
+                .setLabel('Skip')
+                .setStyle(ButtonStyle.Primary)
+                .setEmoji('⏭️')
         );
 
     message.channel.send({
@@ -262,81 +274,18 @@ async function execute(message, serverQueue) {
     });
 }
 
-function skip(message, serverQueue) {
-    if (!message.member.voice.channel) return message.channel.send('You need to be in a voice channel!');
-    if (!serverQueue) return message.channel.send('There is no song to skip!');
-
-    serverQueue.songs.shift();
-    if (serverQueue.songs.length === 0) {
-        if (serverQueue.connection) serverQueue.connection.destroy();
-        queue.delete(message.guild.id);
-    } else {
-        play(message.guild, serverQueue.songs[0]);
-    }
-
-    message.channel.send(`${serverQueue.songs.length} song(s) in queue!`);
-}
-
-function stop(message, serverQueue) {
-    if (!message.member.voice.channel) return message.channel.send('You need to be in a voice channel!');
-    if (!serverQueue) return message.channel.send('There is no song to stop!');
-
-    serverQueue.songs = [];
-    if (serverQueue.connection) serverQueue.connection.destroy();
-    queue.delete(message.guild.id);
-}
-
-function pause(message, serverQueue) {
-    if (!message.member.voice.channel) return message.channel.send('You need to be in a voice channel!');
-    if (!serverQueue || !serverQueue.player) return message.channel.send('There is no song playing to pause!');
-
-    if (!serverQueue.paused) {
-        serverQueue.player.pause(); // Pause the player
-        serverQueue.paused = true;
-        message.channel.send('Playback paused!');
-    } else {
-        message.channel.send('Playback is already paused!');
-    }
-}
-
-function resume(message, serverQueue) {
-    if (!message.member.voice.channel) return message.channel.send('You need to be in a voice channel!');
-    if (!serverQueue || !serverQueue.player) return message.channel.send('There is no song playing to resume!');
-
-    if (serverQueue.paused) {
-        serverQueue.player.unpause(); // Resume the player
-        serverQueue.paused = false;
-        message.channel.send('Playback resumed!');
-    } else {
-        message.channel.send('Playback is already playing!');
-    }
-}
-
 function play(guild, song) {
     const serverQueue = queue.get(guild.id);
-
-    if (!song) {
-        if (serverQueue.connection) serverQueue.connection.destroy();
-        queue.delete(guild.id);
-        return;
-    }
-
-    let resource;
-    if (song.source === 'youtube') {
-        resource = createAudioResource(ytdl(song.url, { filter: 'audioonly', quality: 'highestaudio', highWaterMark: 1 << 25 }));
-    } else if (song.source === 'soundcloud') {
-        resource = createAudioResource(song.url);
-    }
-
     const player = createAudioPlayer();
-    serverQueue.player = player;
+
+    const resource = createAudioResource(song.url, {
+        inputType: ytdl.validateURL(song.url) ? AudioPlayerStatus.Playing : AudioPlayerStatus.Idle
+    });
 
     player.play(resource);
-
     serverQueue.connection.subscribe(player);
 
     player.on(AudioPlayerStatus.Idle, () => {
-        console.log('Music ended!');
         serverQueue.songs.shift();
         if (serverQueue.songs.length > 0) {
             play(guild, serverQueue.songs[0]);
@@ -345,8 +294,39 @@ function play(guild, song) {
             queue.delete(guild.id);
         }
     });
+}
 
-    player.on('error', (error) => console.error(error));
+function skip(message, serverQueue) {
+    if (!serverQueue) return message.channel.send('There is no song that I could skip!');
+    serverQueue.player.stop();
+    message.channel.send('Skipped the song!');
+}
+
+function stop(message, serverQueue) {
+    if (!serverQueue) return message.channel.send('There is no song that I could stop!');
+    serverQueue.songs = [];
+    serverQueue.player.stop();
+    message.channel.send('Stopped the music!');
+}
+
+function pause(message, serverQueue) {
+    if (!serverQueue) return message.channel.send('There is no song playing!');
+    serverQueue.player.pause();
+    serverQueue.paused = true;
+}
+
+function resume(message, serverQueue) {
+    if (!serverQueue) return message.channel.send('There is no song playing!');
+    if (!serverQueue.paused) return message.channel.send('The song is not paused!');
+    serverQueue.player.unpause();
+    serverQueue.paused = false;
+}
+
+function reverse(message, serverQueue) {
+    if (!serverQueue || !serverQueue.previousSong) return message.channel.send('There is no previous song to reverse to!');
+    serverQueue.songs.unshift(serverQueue.previousSong);
+    serverQueue.previousSong = null;
+    play(message.guild, serverQueue.songs[0]);
 }
 
 client.login(token);

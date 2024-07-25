@@ -60,30 +60,65 @@ client.on('interactionCreate', async interaction => {
 
     const serverQueue = queue.get(interaction.guild.id);
     if (!serverQueue) {
-        interaction.reply('There is no song currently playing.');
+        await interaction.reply('There is no song currently playing.');
         return;
     }
 
+    let responseMessage;
     switch (interaction.customId) {
         case 'pause':
             pause(interaction, serverQueue);
+            responseMessage = `Paused: ${serverQueue.songs[0].title}`;
             break;
         case 'play':
             playResume(interaction, serverQueue);
+            responseMessage = `Resumed: ${serverQueue.songs[0].title}`;
             break;
         case 'skip':
             skip(interaction, serverQueue);
+            responseMessage = `Skipped: ${serverQueue.songs[0].title}`;
             break;
         case 'stop':
             stop(interaction, serverQueue);
+            responseMessage = `Stopped playing: ${serverQueue.songs[0].title}`;
             break;
         case 'reverse':
             reverse(interaction, serverQueue);
+            responseMessage = `Reversed to: ${serverQueue.songs[0].title}`;
             break;
         default:
-            interaction.reply('Unknown button action.');
+            responseMessage = 'Unknown button action.';
             break;
     }
+
+    // Show current song and buttons again
+    const currentSongMessage = serverQueue.songs.length > 0 ? `Currently playing: ${serverQueue.songs[0].title}` : 'No song is currently playing.';
+
+    const row = new ActionRowBuilder()
+        .addComponents(
+            new ButtonBuilder()
+                .setCustomId('pause')
+                .setEmoji('⏸️') // Pause emoji
+                .setStyle(ButtonStyle.Primary),
+            new ButtonBuilder()
+                .setCustomId('play')
+                .setEmoji('▶️') // Play emoji
+                .setStyle(ButtonStyle.Success),
+            new ButtonBuilder()
+                .setCustomId('stop')
+                .setEmoji('⏹️') // Stop emoji
+                .setStyle(ButtonStyle.Danger),
+            new ButtonBuilder()
+                .setCustomId('reverse')
+                .setEmoji('⏪') // Rewind emoji for reverse
+                .setStyle(ButtonStyle.Primary),
+            new ButtonBuilder()
+                .setCustomId('skip')
+                .setEmoji('⏩') // Skip emoji
+                .setStyle(ButtonStyle.Secondary)
+        );
+
+    await interaction.update({ content: `${responseMessage}\n${currentSongMessage}`, components: [row] });
 });
 
 async function execute(message, serverQueue) {
@@ -181,28 +216,28 @@ async function execute(message, serverQueue) {
     }
 
     const row = new ActionRowBuilder()
-    .addComponents(
-        new ButtonBuilder()
-            .setCustomId('pause')
-            .setEmoji('⏸️') // Pause emoji
-            .setStyle(ButtonStyle.Primary),
-        new ButtonBuilder()
-            .setCustomId('play')
-            .setEmoji('▶️') // Play emoji
-            .setStyle(ButtonStyle.Success),
-        new ButtonBuilder()
-            .setCustomId('stop')
-            .setEmoji('⏹️') // Stop emoji
-            .setStyle(ButtonStyle.Danger),
-        new ButtonBuilder()
-            .setCustomId('reverse')
-            .setEmoji('⏪') // Rewind emoji for reverse
-            .setStyle(ButtonStyle.Primary),
-        new ButtonBuilder()
-            .setCustomId('skip')
-            .setEmoji('⏩') // Skip emoji
-            .setStyle(ButtonStyle.Secondary)
-    );
+        .addComponents(
+            new ButtonBuilder()
+                .setCustomId('pause')
+                .setEmoji('⏸️') // Pause emoji
+                .setStyle(ButtonStyle.Primary),
+            new ButtonBuilder()
+                .setCustomId('play')
+                .setEmoji('▶️') // Play emoji
+                .setStyle(ButtonStyle.Success),
+            new ButtonBuilder()
+                .setCustomId('stop')
+                .setEmoji('⏹️') // Stop emoji
+                .setStyle(ButtonStyle.Danger),
+            new ButtonBuilder()
+                .setCustomId('reverse')
+                .setEmoji('⏪') // Rewind emoji for reverse
+                .setStyle(ButtonStyle.Primary),
+            new ButtonBuilder()
+                .setCustomId('skip')
+                .setEmoji('⏩') // Skip emoji
+                .setStyle(ButtonStyle.Secondary)
+        );
 
     message.channel.send({ content: 'Use the buttons below to control the music:', components: [row] });
 }

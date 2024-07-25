@@ -181,28 +181,28 @@ async function execute(message, serverQueue) {
     }
 
     const row = new ActionRowBuilder()
-        .addComponents(
-            new ButtonBuilder()
-                .setCustomId('pause')
-                .setLabel('Pause')
-                .setStyle(ButtonStyle.Primary),
-            new ButtonBuilder()
-                .setCustomId('play')
-                .setLabel('Play')
-                .setStyle(ButtonStyle.Success),
-            new ButtonBuilder()
-                .setCustomId('skip')
-                .setLabel('Skip')
-                .setStyle(ButtonStyle.Secondary),
-            new ButtonBuilder()
-                .setCustomId('stop')
-                .setLabel('Stop')
-                .setStyle(ButtonStyle.Danger),
-            new ButtonBuilder()
-                .setCustomId('reverse')
-                .setLabel('Reverse')
-                .setStyle(ButtonStyle.Primary)
-        );
+    .addComponents(
+        new ButtonBuilder()
+            .setCustomId('pause')
+            .setLabel('Pause')
+            .setStyle(ButtonStyle.Primary),
+        new ButtonBuilder()
+            .setCustomId('play')
+            .setLabel('Play')
+            .setStyle(ButtonStyle.Success),
+        new ButtonBuilder()
+            .setCustomId('stop')
+            .setLabel('Stop')
+            .setStyle(ButtonStyle.Danger),
+        new ButtonBuilder()
+            .setCustomId('reverse')
+            .setLabel('Reverse')
+            .setStyle(ButtonStyle.Primary),
+        new ButtonBuilder()
+            .setCustomId('skip')
+            .setLabel('Skip')
+            .setStyle(ButtonStyle.Secondary)
+    );
 
     message.channel.send({ content: 'Use the buttons below to control the music:', components: [row] });
 }

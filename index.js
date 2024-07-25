@@ -1,12 +1,12 @@
-﻿const { Client, GatewayIntentBits, PermissionFlagsBits, ButtonBuilder, ButtonStyle, ActionRowBuilder } = require('discord.js');
+﻿const { Client, GatewayIntentBits, PermissionFlagsBits } = require('discord.js');
 const ytdl = require('@distube/ytdl-core');
 const { prefix } = require('./config.json');
 const scdl = require('soundcloud-downloader').default;
 const ytpl = require('ytpl');
 const YouTube = require("discord-youtube-api");
 const { joinVoiceChannel, createAudioPlayer, createAudioResource, AudioPlayerStatus, VoiceConnectionStatus, entersState } = require('@discordjs/voice');
-const { token, YOUTUBE_API_KEY, SOUNDCLOUD_CLIENT_ID } = process.env;
-const youtube = new YouTube(YOUTUBE_API_KEY);
+const token = process.env.token;
+const youtube = new YouTube(process.env.YOUTUBE_API_KEY);
 
 const client = new Client({
     intents: [
@@ -19,7 +19,6 @@ const client = new Client({
 
 const queue = new Map();
 require('events').EventEmitter.defaultMaxListeners = 20;
-
 client.once('ready', () => {
     console.log('Ready!');
 });
@@ -47,33 +46,11 @@ client.on('messageCreate', async message => {
     } else if (message.content.startsWith(`${prefix}stop`)) {
         stop(message, serverQueue);
         return;
+    } else if (message.content.startsWith(`${prefix}rewind`)) {
+        rewind(message, serverQueue);
+        return;
     } else {
         message.channel.send('You need to enter a valid command!');
-    }
-});
-
-client.on('interactionCreate', async interaction => {
-    if (!interaction.isButton()) return;
-
-    const serverQueue = queue.get(interaction.guild.id);
-    if (!serverQueue) {
-        interaction.reply('There is no song currently playing.');
-        return;
-    }
-
-    switch (interaction.customId) {
-        case 'pause':
-            pause(interaction, serverQueue);
-            break;
-        case 'play':
-            playResume(interaction, serverQueue);
-            break;
-        case 'skip':
-            skip(interaction, serverQueue);
-            break;
-        default:
-            interaction.reply('Unknown button action.');
-            break;
     }
 });
 
@@ -93,44 +70,59 @@ async function execute(message, serverQueue) {
         voiceChannel: voiceChannel,
         connection: null,
         songs: [],
+        lastSong: null, // Track the last song played
         volume: 5,
         playing: true,
-        isPlayingSoundCloud: false,
-        player: createAudioPlayer()
+        isPlayingSoundCloud: false
     };
 
     let song = null;
-    try {
-        if (args[0].includes('soundcloud.com')) {
-            const trackInfo = await scdl.getInfo(args[0], SOUNDCLOUD_CLIENT_ID);
-            const track = await scdl.downloadFormat(trackInfo.permalink_url, scdl.FORMATS.OPUS, SOUNDCLOUD_CLIENT_ID);
-            song = {
-                title: trackInfo.title,
-                url: track,
-                source: 'soundcloud'
-            };
-        } else if (ytpl.validateID(searchString)) {
-            const playlist = await ytpl(searchString);
-            for (const video of playlist.items) {
-                const song = {
-                    title: video.title,
-                    url: video.shortUrl,
-                    source: 'youtube'
-                };
-                if (!serverQueue) {
-                    queue.set(message.guild.id, queueContruct);
-                    queueContruct.songs.push(song);
-                } else {
-                    serverQueue.songs.push(song);
-                    message.channel.send(`${song.title} added to the queue!`);
-                }
+    if (args[0].includes('soundcloud.com')) {
+        // Download SoundCloud track
+        const trackInfo = await scdl.getInfo(args[0], process.env.SOUNDCLOUD_CLIENT_ID);
+        const track = await scdl.downloadFormat(trackInfo.permalink_url, scdl.FORMATS.OPUS, process.env.SOUNDCLOUD_CLIENT_ID);
+        song = {
+            title: trackInfo.title,
+            url: track,
+            source: 'soundcloud'
+        };
+        if (!serverQueue) {
+            queue.set(message.guild.id, queueContruct);
+            queueContruct.songs.push(song);
+            try {
+                const connection = joinVoiceChannel({
+                    channelId: voiceChannel.id,
+                    guildId: message.guild.id,
+                    adapterCreator: message.guild.voiceAdapterCreator
+                });
+                queueContruct.connection = connection;
+                connection.on(VoiceConnectionStatus.Disconnected, async () => {
+                    try {
+                        await Promise.race([
+                            entersState(connection, VoiceConnectionStatus.Signalling, 5_000),
+                            entersState(connection, VoiceConnectionStatus.Connecting, 5_000),
+                        ]);
+                    } catch (error) {
+                        queue.delete(message.guild.id);
+                        connection.destroy();
+                    }
+                });
+                play(message.guild, queueContruct.songs[0]);
+            } catch (err) {
+                console.log(err);
+                queue.delete(message.guild.id);
+                return message.channel.send(err.message);
             }
-            message.channel.send(`${playlist.items.length} song(s) added to the queue!`);
         } else {
-            const songInfo = await ytdl.getInfo(searchString);
-            song = {
-                title: songInfo.videoDetails.title,
-                url: songInfo.videoDetails.video_url,
+            serverQueue.songs.push(song);
+            message.channel.send(`${song.title} added to the queue!`);
+        }
+    } else if (ytpl.validateID(searchString)) {
+        const playlist = await ytpl(searchString);
+        for (const video of playlist.items) {
+            const song = {
+                title: video.title,
+                url: video.shortUrl,
                 source: 'youtube'
             };
             if (!serverQueue) {
@@ -158,35 +150,56 @@ async function execute(message, serverQueue) {
                 } catch (err) {
                     console.log(err);
                     queue.delete(message.guild.id);
-                    return message.channel.send('Failed to connect to the voice channel.');
+                    return message.channel.send(err.message);
                 }
             } else {
                 serverQueue.songs.push(song);
                 message.channel.send(`${song.title} added to the queue!`);
             }
         }
-
-        const row = new ActionRowBuilder()
-            .addComponents(
-                new ButtonBuilder()
-                    .setCustomId('pause')
-                    .setLabel('Pause')
-                    .setStyle(ButtonStyle.Primary),
-                new ButtonBuilder()
-                    .setCustomId('play')
-                    .setLabel('Play')
-                    .setStyle(ButtonStyle.Success),
-                new ButtonBuilder()
-                    .setCustomId('skip')
-                    .setLabel('Skip')
-                    .setStyle(ButtonStyle.Secondary),
-            );
-
-        message.channel.send({ content: 'Use the buttons below to control the music:', components: [row] });
-
-    } catch (err) {
-        console.error(err);
-        message.channel.send('An error occurred while processing your request.');
+        message.channel.send(`${playlist.items.length} Song playlist added to the queue!`);
+    } else {
+        try {
+            const songInfo = await ytdl.getInfo(searchString);
+            song = {
+                title: songInfo.videoDetails.title,
+                url: songInfo.videoDetails.video_url,
+                source: 'youtube'
+            };
+            if (!serverQueue) {
+                queue.set(message.guild.id, queueContruct);
+                queueContruct.songs.push(song);
+                try {
+                    const connection = joinVoiceChannel({
+                        channelId: voiceChannel.id,
+                        guildId: message.guild.id,
+                        adapterCreator: message.guild.voiceAdapterCreator
+                    });
+                    queueContruct.connection = connection;
+                    connection.on(VoiceConnectionStatus.Disconnected, async () => {
+                        try {
+                            await Promise.race([
+                                entersState(connection, VoiceConnectionStatus.Signalling, 5_000),
+                                entersState(connection, VoiceConnectionStatus.Connecting, 5_000),
+                            ]);
+                        } catch (err) {
+                            queue.delete(message.guild.id);
+                            connection.destroy();
+                        }
+                    });
+                    play(message.guild, queueContruct.songs[0]);
+                } catch (err) {
+                    console.log(err);
+                    queue.delete(message.guild.id);
+                    return message.channel.send(err.message);
+                }
+            } else {
+                serverQueue.songs.push(song);
+                message.channel.send(`${song.title} added to the queue!`);
+            }
+        } catch (err) {
+            message.channel.send('Error: Invalid YouTube URL');
+        }
     }
 }
 
@@ -210,8 +223,20 @@ function stop(message, serverQueue) {
     if (!serverQueue) return message.channel.send('There is no song to stop!');
 
     serverQueue.songs = [];
+    serverQueue.lastSong = null; // Clear last song when stopping
     if (serverQueue.connection) serverQueue.connection.destroy();
     queue.delete(message.guild.id);
+}
+
+function rewind(message, serverQueue) {
+    if (!message.member.voice.channel) return message.channel.send('You need to be in a voice channel!');
+    if (!serverQueue) return message.channel.send('There is no song to rewind to!');
+    if (!serverQueue.lastSong) return message.channel.send('No previous song to rewind to!');
+
+    serverQueue.songs.unshift(serverQueue.lastSong); // Add the last song back to the front of the queue
+    serverQueue.lastSong = null; // Clear last song
+    play(message.guild, serverQueue.songs[0]);
+    message.channel.send('Rewound to the previous song!');
 }
 
 function play(guild, song) {
@@ -224,60 +249,30 @@ function play(guild, song) {
     }
 
     let resource;
-    try {
-        if (song.source === 'youtube') {
-            resource = createAudioResource(ytdl(song.url, { filter: 'audioonly', quality: 'highestaudio', highWaterMark: 1 << 25 }));
-        } else if (song.source === 'soundcloud') {
-            resource = createAudioResource(song.url);
+    if (song.source === 'youtube') {
+        resource = createAudioResource(ytdl(song.url, { filter: 'audioonly', quality: 'highestaudio', highWaterMark: 1 << 25 }));
+    } else if (song.source === 'soundcloud') {
+        resource = createAudioResource(song.url);
+    }
+
+    const player = createAudioPlayer();
+
+    player.play(resource);
+
+    serverQueue.connection.subscribe(player);
+
+    player.on(AudioPlayerStatus.Idle, () => {
+        console.log('Music ended!');
+        serverQueue.lastSong = serverQueue.songs.shift(); // Save current song as last song
+        if (serverQueue.songs.length > 0) {
+            play(guild, serverQueue.songs[0]);
+        } else {
+            serverQueue.connection.destroy();
+            queue.delete(guild.id);
         }
-    } catch (error) {
-        console.error('Error creating audio resource:', error);
-        serverQueue.songs.shift();
-        play(guild, serverQueue.songs[0]);
-        return;
-    }
+    });
 
-    if (serverQueue.player && serverQueue.connection) {
-        serverQueue.player.play(resource);
-        serverQueue.connection.subscribe(serverQueue.player);
-
-        serverQueue.player.on(AudioPlayerStatus.Idle, () => {
-            console.log('Music ended!');
-            serverQueue.songs.shift();
-            if (serverQueue.songs.length > 0) {
-                play(guild, serverQueue.songs[0]);
-            } else {
-                serverQueue.connection.destroy();
-                queue.delete(guild.id);
-            }
-        });
-
-        serverQueue.player.on('error', (error) => console.error('AudioPlayer error:', error));
-    } else {
-        console.error('Player or connection is null');
-    }
+    player.on('error', (error) => console.error(error));
 }
-
-function pause(interaction, serverQueue) {
-    if (serverQueue.player.state.status === AudioPlayerStatus.Playing) {
-        serverQueue.player.pause();
-        interaction.reply('Music paused!');
-    } else {
-        interaction.reply('Music is not playing!');
-    }
-}
-
-function playResume(interaction, serverQueue) {
-    if (serverQueue.player.state.status === AudioPlayerStatus.Paused) {
-        serverQueue.player.unpause();
-        interaction.reply('Music resumed!');
-    } else {
-        interaction.reply('Music is already playing!');
-    }
-}
-
-client.on('error', (error) => {
-    console.error('Client error:', error);
-});
 
 client.login(token);

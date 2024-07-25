@@ -3,7 +3,7 @@ const ytdl = require('@distube/ytdl-core');
 const { prefix } = require('./config.json');
 const scdl = require('soundcloud-downloader').default;
 const ytpl = require('ytpl');
-const YouTube = require("discord-youtube-api");
+const YouTube = require('discord-youtube-api');
 const { joinVoiceChannel, createAudioPlayer, createAudioResource, AudioPlayerStatus, VoiceConnectionStatus, entersState } = require('@discordjs/voice');
 const { token, YOUTUBE_API_KEY, SOUNDCLOUD_CLIENT_ID } = process.env;
 const youtube = new YouTube(YOUTUBE_API_KEY);
@@ -157,6 +157,7 @@ async function execute(message, serverQueue) {
                     guildId: message.guild.id,
                     adapterCreator: message.guild.voiceAdapterCreator
                 });
+                console.log(`Joined channel: ${voiceChannel.name} in guild: ${message.guild.name}`);
                 queueConstruct.connection = connection;
                 connection.on(VoiceConnectionStatus.Disconnected, async () => {
                     try {
@@ -167,13 +168,14 @@ async function execute(message, serverQueue) {
                     } catch (error) {
                         queue.delete(message.guild.id);
                         connection.destroy();
+                        console.log(`Disconnected from channel: ${voiceChannel.name}`);
                     }
                 });
                 play(message.guild, queueConstruct.songs[0]);
             } catch (err) {
-                console.log(err);
+                console.log('Error joining voice channel:', err);
                 queue.delete(message.guild.id);
-                return message.channel.send(err.message);
+                return message.channel.send('Failed to join the voice channel.');
             }
         } else {
             serverQueue.songs.push(song);
@@ -270,9 +272,10 @@ function play(guild, song) {
     }
 
     serverQueue.player.play(resource);
+
     serverQueue.connection.subscribe(serverQueue.player);
 
-    serverQueue.textChannel.send(`Start playing: **${song.title}**`);
+    serverQueue.textChannel.send(`Started playing: ${song.title}`);
 }
 
 client.login(token);

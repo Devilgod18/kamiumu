@@ -18,7 +18,7 @@ const client = new Client({
 });
 
 const queue = new Map();
-require('events').EventEmitter.defaultMaxListeners = 50;
+require('events').EventEmitter.defaultMaxListeners = 20;
 
 client.once('ready', () => {
     console.log('Ready!');
@@ -268,19 +268,27 @@ async function execute(message, serverQueue) {
                 .setEmoji('⏭️')
         );
 
-    message.channel.send({
-        content: 'Controls:',
-        components: [row]
-    });
+    message.channel.send({ content: 'Control the music playback:', components: [row] });
 }
 
 function play(guild, song) {
     const serverQueue = queue.get(guild.id);
     const player = createAudioPlayer();
 
-    const resource = createAudioResource(song.url, {
-        inputType: ytdl.validateURL(song.url) ? AudioPlayerStatus.Playing : AudioPlayerStatus.Idle
-    });
+    let resource;
+    if (song.source === 'youtube') {
+        resource = createAudioResource(ytdl(song.url, {
+            filter: 'audioonly',
+            quality: 'highestaudio',
+            highWaterMark: 1 << 25
+        }));
+    } else if (song.source === 'soundcloud') {
+        resource = createAudioResource(song.url, {
+            filter: 'audioonly',
+            quality: 'highestaudio',
+            highWaterMark: 1 << 25
+        });
+    }
 
     player.play(resource);
     serverQueue.connection.subscribe(player);
@@ -294,6 +302,8 @@ function play(guild, song) {
             queue.delete(guild.id);
         }
     });
+
+    player.on('error', (error) => console.error(error));
 }
 
 function skip(message, serverQueue) {

@@ -319,7 +319,7 @@ function play(guild, song) {
     let resource;
     try {
         if (song.source === 'youtube') {
-            resource = createAudioResource(ytdl(song.url, { filter: 'audioonly', quality: 'highestaudio', highWaterMark: 1 << 25 }));
+            resource = createAudioResource(ytdl(song.url, { filter: 'audioonly', highWaterMark: 1 << 25 }));
         } else if (song.source === 'soundcloud') {
             resource = createAudioResource(song.url);
         }

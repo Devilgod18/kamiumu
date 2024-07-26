@@ -1,4 +1,4 @@
-﻿const { Client, GatewayIntentBits, PermissionFlagsBits, ActionRowBuilder, ButtonBuilder, ButtonStyle, Events, InteractionType } = require('discord.js');
+﻿const { Client, GatewayIntentBits, PermissionFlagsBits, ActionRowBuilder, ButtonBuilder, ButtonStyle, Events } = require('discord.js');
 const ytdl = require('@distube/ytdl-core');
 const { prefix } = require('./config.json');
 const scdl = require('soundcloud-downloader').default;
@@ -62,24 +62,55 @@ client.on(Events.InteractionCreate, async interaction => {
         return interaction.reply({ content: 'There is nothing playing right now.', ephemeral: true });
     }
 
+    let responseMessage;
     switch (interaction.customId) {
         case 'pause':
             pause(interaction.message, serverQueue);
-            await interaction.reply({ content: 'Playback paused!', ephemeral: true });
+            responseMessage = `Playback paused! Currently playing: **${serverQueue.songs[0]?.title || 'None'}**`;
             break;
         case 'resume':
             resume(interaction.message, serverQueue);
-            await interaction.reply({ content: 'Playback resumed!', ephemeral: true });
+            responseMessage = `Playback resumed! Currently playing: **${serverQueue.songs[0]?.title || 'None'}**`;
             break;
         case 'skip':
             skip(interaction.message, serverQueue);
-            await interaction.reply({ content: 'Song skipped!', ephemeral: true });
+            responseMessage = `Song skipped! Currently playing: **${serverQueue.songs[0]?.title || 'None'}**`;
             break;
         case 'stop':
             stop(interaction.message, serverQueue);
-            await interaction.reply({ content: 'Playback stopped!', ephemeral: true });
+            responseMessage = 'Playback stopped!';
             break;
     }
+
+    // Update the message with the current song details and controls
+    await interaction.update({
+        content: responseMessage,
+        components: [
+            new ActionRowBuilder()
+                .addComponents(
+                    new ButtonBuilder()
+                        .setCustomId('pause')
+                        .setLabel('Pause')
+                        .setStyle(ButtonStyle.Primary)
+                        .setEmoji('⏸️'),
+                    new ButtonBuilder()
+                        .setCustomId('resume')
+                        .setLabel('Resume')
+                        .setStyle(ButtonStyle.Primary)
+                        .setEmoji('▶️'),
+                    new ButtonBuilder()
+                        .setCustomId('skip')
+                        .setLabel('Skip')
+                        .setStyle(ButtonStyle.Primary)
+                        .setEmoji('⏭️'),
+                    new ButtonBuilder()
+                        .setCustomId('stop')
+                        .setLabel('Stop')
+                        .setStyle(ButtonStyle.Danger)
+                        .setEmoji('🛑')
+                )
+        ]
+    });
 });
 
 async function execute(message, serverQueue) {
@@ -257,7 +288,7 @@ async function execute(message, serverQueue) {
         );
 
     message.channel.send({
-        content: 'Controls:',
+        content: `Currently playing: **${queueContruct.songs[0]?.title || 'None'}**\nControls:`,
         components: [row]
     });
 }
@@ -274,7 +305,7 @@ function skip(message, serverQueue) {
         play(message.guild, serverQueue.songs[0]);
     }
 
-    message.channel.send(`${serverQueue.songs.length} song(s) in queue!`);
+    message.channel.send(`Currently playing: **${serverQueue.songs[0]?.title || 'None'}**`);
 }
 
 function stop(message, serverQueue) {
@@ -284,6 +315,8 @@ function stop(message, serverQueue) {
     serverQueue.songs = [];
     if (serverQueue.connection) serverQueue.connection.destroy();
     queue.delete(message.guild.id);
+
+    message.channel.send('Playback stopped!');
 }
 
 function pause(message, serverQueue) {
@@ -293,7 +326,7 @@ function pause(message, serverQueue) {
     if (!serverQueue.paused) {
         serverQueue.player.pause(); // Pause the player
         serverQueue.paused = true;
-        message.channel.send('Playback paused!');
+        message.channel.send(`Playback paused! Currently playing: **${serverQueue.songs[0]?.title || 'None'}**`);
     } else {
         message.channel.send('Playback is already paused!');
     }
@@ -306,7 +339,7 @@ function resume(message, serverQueue) {
     if (serverQueue.paused) {
         serverQueue.player.unpause(); // Resume the player
         serverQueue.paused = false;
-        message.channel.send('Playback resumed!');
+        message.channel.send(`Playback resumed! Currently playing: **${serverQueue.songs[0]?.title || 'None'}**`);
     } else {
         message.channel.send('Playback is already playing!');
     }
@@ -350,3 +383,4 @@ function play(guild, song) {
 }
 
 client.login(token);
+

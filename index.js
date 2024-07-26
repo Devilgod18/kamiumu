@@ -226,7 +226,35 @@ async function execute(message, serverQueue) {
         }
     }
 
-    
+    // Create and send the buttons
+    const row = new ActionRowBuilder()
+        .addComponents(
+            new ButtonBuilder()
+                .setCustomId('pause')
+                .setLabel('Pause')
+                .setStyle(ButtonStyle.Primary)
+                .setEmoji('⏸️'),
+            new ButtonBuilder()
+                .setCustomId('resume')
+                .setLabel('Resume')
+                .setStyle(ButtonStyle.Primary)
+                .setEmoji('▶️'),
+            new ButtonBuilder()
+                .setCustomId('skip')
+                .setLabel('Skip')
+                .setStyle(ButtonStyle.Primary)
+                .setEmoji('⏭️'),
+            new ButtonBuilder()
+                .setCustomId('stop')
+                .setLabel('Stop')
+                .setStyle(ButtonStyle.Danger)
+                .setEmoji('🛑')
+        );
+
+    message.channel.send({
+        content: 'Controls:',
+        components: [row]
+    });
 }
 
 function skip(message, serverQueue) {
@@ -242,7 +270,6 @@ function skip(message, serverQueue) {
     }
 
     message.channel.send(`Skipped to the next song. ${serverQueue.songs.length} song(s) remaining in the queue.`);
-    sendControls(message.channel);
 }
 
 function stop(message, serverQueue) {
@@ -252,9 +279,6 @@ function stop(message, serverQueue) {
     serverQueue.songs = [];
     if (serverQueue.connection) serverQueue.connection.destroy();
     queue.delete(message.guild.id);
-
-    message.channel.send('Stopped the music and cleared the queue!');
-    sendControls(message.channel);
 }
 
 function pause(message, serverQueue) {
@@ -268,7 +292,6 @@ function pause(message, serverQueue) {
     } else {
         message.channel.send('Playback is already paused!');
     }
-    sendControls(message.channel);
 }
 
 function resume(message, serverQueue) {
@@ -282,7 +305,6 @@ function resume(message, serverQueue) {
     } else {
         message.channel.send('Playback is already playing!');
     }
-    sendControls(message.channel);
 }
 
 function play(guild, song) {
@@ -332,41 +354,6 @@ function play(guild, song) {
     });
 
     player.on('error', (error) => console.error('Player Error:', error));
-
-    serverQueue.textChannel.send(`Start playing: **${song.title}**`);
-    sendControls(serverQueue.textChannel);
-}
-
-function sendControls(channel) {
-    const row = new ActionRowBuilder()
-        .addComponents(
-            new ButtonBuilder()
-                .setCustomId('pause')
-                .setLabel('Pause')
-                .setStyle(ButtonStyle.Primary)
-                .setEmoji('⏸️'),
-            new ButtonBuilder()
-                .setCustomId('resume')
-                .setLabel('Resume')
-                .setStyle(ButtonStyle.Primary)
-                .setEmoji('▶️'),
-            new ButtonBuilder()
-                .setCustomId('skip')
-                .setLabel('Skip')
-                .setStyle(ButtonStyle.Primary)
-                .setEmoji('⏭️'),
-            new ButtonBuilder()
-                .setCustomId('stop')
-                .setLabel('Stop')
-                .setStyle(ButtonStyle.Danger)
-                .setEmoji('🛑')
-        );
-
-    channel.send({
-        content: 'Controls:',
-        components: [row]
-    });
 }
 
 client.login(token);
-

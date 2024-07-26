@@ -1,11 +1,10 @@
 ﻿const { Client, GatewayIntentBits, PermissionFlagsBits, ActionRowBuilder, ButtonBuilder, ButtonStyle, Events, InteractionType } = require('discord.js');
+const ytdl = require('@distube/ytdl-core');
 const { prefix } = require('./config.json');
 const scdl = require('soundcloud-downloader').default;
 const ytpl = require('ytpl');
 const YouTube = require('discord-youtube-api');
 const { joinVoiceChannel, createAudioPlayer, createAudioResource, AudioPlayerStatus, VoiceConnectionStatus, entersState } = require('@discordjs/voice');
-const fluentFfmpeg = require('fluent-ffmpeg');
-const ffmpegPath = require('ffmpeg-static');
 const token = process.env.token;
 const youtube = new YouTube(process.env.YOUTUBE_API_KEY);
 
@@ -20,9 +19,6 @@ const client = new Client({
 
 const queue = new Map();
 require('events').EventEmitter.defaultMaxListeners = 20;
-
-// Set fluent-ffmpeg to use ffmpeg-static
-fluentFfmpeg.setFfmpegPath(ffmpegPath);
 
 client.once('ready', () => {
     console.log('Ready!');
@@ -57,7 +53,7 @@ client.on('messageCreate', async message => {
     }
 });
 
-client.on(Events.InteractionCreate, async interaction => {
+client.on(Events.InteractionCreate,  interaction => {
     if (!interaction.isButton()) return;
 
     const serverQueue = queue.get(interaction.guild.id);
@@ -69,19 +65,19 @@ client.on(Events.InteractionCreate, async interaction => {
     switch (interaction.customId) {
         case 'pause':
             pause(interaction.message, serverQueue);
-            await interaction.reply({ content: 'Playback paused!', ephemeral: true });
+             interaction.reply({ content: 'Playback paused!', ephemeral: true });
             break;
         case 'resume':
             resume(interaction.message, serverQueue);
-            await interaction.reply({ content: 'Playback resumed!', ephemeral: true });
+             interaction.reply({ content: 'Playback resumed!', ephemeral: true });
             break;
         case 'skip':
             skip(interaction.message, serverQueue);
-            await interaction.reply({ content: 'Song skipped!', ephemeral: true });
+             interaction.reply({ content: 'Song skipped!', ephemeral: true });
             break;
         case 'stop':
             stop(interaction.message, serverQueue);
-            await interaction.reply({ content: 'Playback stopped!', ephemeral: true });
+             interaction.reply({ content: 'Playback stopped!', ephemeral: true });
             break;
     }
 });
@@ -193,7 +189,7 @@ async function execute(message, serverQueue) {
         message.channel.send(`${playlist.items.length} Song playlist added to the queue!`);
     } else {
         try {
-            const songInfo = await ytpl.getInfo(searchString); // Update to use fluent-ffmpeg
+            const songInfo = await ytdl.getInfo(searchString);
             song = {
                 title: songInfo.videoDetails.title,
                 url: songInfo.videoDetails.video_url,
@@ -327,7 +323,7 @@ function play(guild, song) {
 
     let resource;
     if (song.source === 'youtube') {
-        resource = createAudioResource(fluentFfmpeg(song.url).audioCodec('libmp3lame').format('mp3').pipe());
+        resource = createAudioResource(ytdl(song.url, { filter: 'audioonly', quality: 'highestaudio', highWaterMark: 1 << 25 }));
     } else if (song.source === 'soundcloud') {
         resource = createAudioResource(song.url);
     }

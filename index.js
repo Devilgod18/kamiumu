@@ -110,6 +110,7 @@ async function execute(message, serverQueue) {
     let song = null;
     if (args[0].includes('soundcloud.com')) {
         try {
+            // Download SoundCloud track
             const trackInfo = await scdl.getInfo(args[0], process.env.SOUNDCLOUD_CLIENT_ID);
             const track = await scdl.downloadFormat(trackInfo.permalink_url, scdl.FORMATS.OPUS, process.env.SOUNDCLOUD_CLIENT_ID);
             song = {
@@ -267,6 +268,8 @@ function skip(message, serverQueue) {
     } else {
         play(message.guild, serverQueue.songs[0]);
     }
+
+    message.channel.send(`Skipped to the next song. ${serverQueue.songs.length} song(s) remaining in the queue.`);
 }
 
 function stop(message, serverQueue) {
@@ -280,47 +283,67 @@ function stop(message, serverQueue) {
 
 function pause(message, serverQueue) {
     if (!message.member.voice.channel) return message.channel.send('You need to be in a voice channel!');
-    if (!serverQueue || !serverQueue.player) return message.channel.send('No song is currently playing.');
+    if (!serverQueue || !serverQueue.player) return message.channel.send('There is no song playing to pause!');
 
-    if (serverQueue.player.state.status === AudioPlayerStatus.Paused) {
-        return message.channel.send('Playback is already paused.');
+    if (!serverQueue.paused) {
+        serverQueue.player.pause(); // Pause the player
+        serverQueue.paused = true;
+        message.channel.send('Playback paused!');
+    } else {
+        message.channel.send('Playback is already paused!');
     }
-
-    serverQueue.player.pause();
-    serverQueue.paused = true;
 }
 
 function resume(message, serverQueue) {
     if (!message.member.voice.channel) return message.channel.send('You need to be in a voice channel!');
-    if (!serverQueue || !serverQueue.player) return message.channel.send('No song is currently playing.');
+    if (!serverQueue || !serverQueue.player) return message.channel.send('There is no song playing to resume!');
 
-    if (serverQueue.player.state.status === AudioPlayerStatus.Playing) {
-        return message.channel.send('Playback is already resumed.');
+    if (serverQueue.paused) {
+        serverQueue.player.unpause(); // Resume the player
+        serverQueue.paused = false;
+        message.channel.send('Playback resumed!');
+    } else {
+        message.channel.send('Playback is already playing!');
     }
-
-    serverQueue.player.unpause();
-    serverQueue.paused = false;
 }
 
 function play(guild, song) {
     const serverQueue = queue.get(guild.id);
-    if (!serverQueue) return;
 
-    const resource = createAudioResource(song.url, {
-        inputType: AudioPlayerStatus.Stream,
-        inlineVolume: true,
-        metadata: {
-            title: song.title,
-        },
-        highWaterMark: 1 << 25, // 32 MB
-        quality: 'highestaudio'
-    });
+    if (!song) {
+        if (serverQueue.connection) serverQueue.connection.destroy();
+        queue.delete(guild.id);
+        return;
+    }
 
-    serverQueue.player = createAudioPlayer();
-    serverQueue.player.play(resource);
+    let resource;
+    try {
+        if (song.source === 'youtube') {
+            resource = createAudioResource(ytdl(song.url, { filter: 'audioonly', quality: 'highestaudio', highWaterMark: 1 << 25 }));
+        } else if (song.source === 'soundcloud') {
+            resource = createAudioResource(song.url);
+        }
+    } catch (error) {
+        console.error('Error creating audio resource:', error);
+        serverQueue.songs.shift();
+        if (serverQueue.songs.length > 0) {
+            play(guild, serverQueue.songs[0]);
+        } else {
+            serverQueue.connection.destroy();
+            queue.delete(guild.id);
+        }
+        return;
+    }
 
-    serverQueue.connection.subscribe(serverQueue.player);
-    serverQueue.player.on(AudioPlayerStatus.Idle, () => {
+    const player = createAudioPlayer();
+    serverQueue.player = player;
+
+    player.play(resource);
+
+    serverQueue.connection.subscribe(player);
+
+    player.on(AudioPlayerStatus.Idle, () => {
+        console.log('Music ended!');
         serverQueue.songs.shift();
         if (serverQueue.songs.length > 0) {
             play(guild, serverQueue.songs[0]);
@@ -330,16 +353,7 @@ function play(guild, song) {
         }
     });
 
-    serverQueue.player.on('error', error => {
-        console.error('Error occurred:', error);
-        serverQueue.songs.shift();
-        if (serverQueue.songs.length > 0) {
-            play(guild, serverQueue.songs[0]);
-        } else {
-            serverQueue.connection.destroy();
-            queue.delete(guild.id);
-        }
-    });
+    player.on('error', (error) => console.error('Player Error:', error));
 }
 
 client.login(token);

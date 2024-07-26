@@ -2,6 +2,7 @@
 const ytdl = require('@distube/ytdl-core');
 const scdl = require('soundcloud-downloader').default;
 const ytpl = require('ytpl');
+const { prefix } = require('./config.json');
 const YouTube = require('discord-youtube-api');
 const { joinVoiceChannel, createAudioPlayer, createAudioResource, AudioPlayerStatus, VoiceConnectionStatus, entersState } = require('@discordjs/voice');
 const token = process.env.token;

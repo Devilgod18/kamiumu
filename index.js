@@ -18,6 +18,7 @@ const client = new Client({
 });
 
 const queue = new Map();
+const skipCooldown = new Map();
 
 // Ensure the maximum listeners is set to a higher number to prevent warnings
 require('events').EventEmitter.defaultMaxListeners = 30;
@@ -75,6 +76,7 @@ client.on(Events.InteractionCreate, async interaction => {
             break;
         case 'skip':
             skip(interaction.message, serverQueue);
+            interaction.reply({ content: 'Song skipped!', ephemeral: true });
             break;
         case 'stop':
             stop(interaction.message, serverQueue);
@@ -259,6 +261,21 @@ async function execute(message, serverQueue) {
 function skip(message, serverQueue) {
     if (!message.member.voice.channel) return message.channel.send('You need to be in a voice channel!');
     if (!serverQueue) return message.channel.send('There is no song to skip!');
+
+    const userId = message.author.id;
+    const now = Date.now();
+    const cooldownAmount = 5000; // 5 seconds cooldown
+
+    if (skipCooldown.has(userId)) {
+        const expirationTime = skipCooldown.get(userId) + cooldownAmount;
+        if (now < expirationTime) {
+            const timeLeft = (expirationTime - now) / 1000;
+            return message.channel.send(`Please wait ${timeLeft.toFixed(1)} more seconds before skipping again.`);
+        }
+    }
+
+    skipCooldown.set(userId, now);
+    setTimeout(() => skipCooldown.delete(userId), cooldownAmount);
 
     serverQueue.songs.shift();
     if (serverQueue.songs.length === 0) {

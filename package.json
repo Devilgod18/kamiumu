@@ -12,6 +12,7 @@
     "@discordjs/uws": "^10.149.0",
     "@discordjs/voice": "^0.17.0",
     "@distube/ytdl-core": "^4.13.5",
+    "async": "^3.2.5",
     "cheerio": "^1.0.0-rc.3",
     "dabi-images": "^2.7.5",
     "discord-api-types": "^0.37.93",

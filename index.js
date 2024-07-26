@@ -18,8 +18,19 @@ const client = new Client({
 });
 
 const queue = new Map();
+const async = require('async');
 
-// Ensure the maximum listeners is set to a higher number to prevent warnings
+// Create a queue with concurrency of 2
+const taskQueue = async.queue(async (task, done) => {
+    try {
+        await task();
+    } catch (error) {
+        console.error('Error processing task:', error);
+    } finally {
+        done();
+    }
+}, 2);
+
 require('events').EventEmitter.defaultMaxListeners = 30;
 
 client.once('ready', () => {
@@ -110,7 +121,6 @@ async function execute(message, serverQueue) {
     let song = null;
     if (args[0].includes('soundcloud.com')) {
         try {
-            // Download SoundCloud track
             const trackInfo = await scdl.getInfo(args[0], process.env.SOUNDCLOUD_CLIENT_ID);
             const track = await scdl.downloadFormat(trackInfo.permalink_url, scdl.FORMATS.OPUS, process.env.SOUNDCLOUD_CLIENT_ID);
             song = {
@@ -226,7 +236,6 @@ async function execute(message, serverQueue) {
         }
     }
 
-    // Create and send the buttons
     const row = new ActionRowBuilder()
         .addComponents(
             new ButtonBuilder()

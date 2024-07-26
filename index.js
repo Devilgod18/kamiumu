@@ -73,7 +73,7 @@ client.on(Events.InteractionCreate, async interaction => {
             break;
         case 'skip':
             skip(interaction.message, serverQueue);
-            await interaction.reply({ content: 'Song skipped!', ephemeral: true });
+           
             break;
         case 'stop':
             stop(interaction.message, serverQueue);

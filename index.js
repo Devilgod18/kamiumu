@@ -132,17 +132,7 @@ async function execute(message, serverQueue) {
                     adapterCreator: message.guild.voiceAdapterCreator
                 });
                 queueContruct.connection = connection;
-                connection.on(VoiceConnectionStatus.Disconnected, async () => {
-                    try {
-                        await Promise.race([
-                            entersState(connection, VoiceConnectionStatus.Signalling, 5_000),
-                            entersState(connection, VoiceConnectionStatus.Connecting, 5_000),
-                        ]);
-                    } catch (error) {
-                        queue.delete(message.guild.id);
-                        connection.destroy();
-                    }
-                });
+                setupConnectionListeners(connection);
                 play(message.guild, queueContruct.songs[0]);
             } catch (err) {
                 console.log(err);
@@ -171,17 +161,7 @@ async function execute(message, serverQueue) {
                         adapterCreator: message.guild.voiceAdapterCreator
                     });
                     queueContruct.connection = connection;
-                    connection.on(VoiceConnectionStatus.Disconnected, async () => {
-                        try {
-                            await Promise.race([
-                                entersState(connection, VoiceConnectionStatus.Signalling, 5_000),
-                                entersState(connection, VoiceConnectionStatus.Connecting, 5_000),
-                            ]);
-                        } catch (error) {
-                            queue.delete(message.guild.id);
-                            connection.destroy();
-                        }
-                    });
+                    setupConnectionListeners(connection);
                     play(message.guild, queueContruct.songs[0]);
                 } catch (err) {
                     console.log(err);
@@ -212,17 +192,7 @@ async function execute(message, serverQueue) {
                         adapterCreator: message.guild.voiceAdapterCreator
                     });
                     queueContruct.connection = connection;
-                    connection.on(VoiceConnectionStatus.Disconnected, async () => {
-                        try {
-                            await Promise.race([
-                                entersState(connection, VoiceConnectionStatus.Signalling, 5_000),
-                                entersState(connection, VoiceConnectionStatus.Connecting, 5_000),
-                            ]);
-                        } catch (error) {
-                            queue.delete(message.guild.id);
-                            connection.destroy();
-                        }
-                    });
+                    setupConnectionListeners(connection);
                     play(message.guild, queueContruct.songs[0]);
                 } catch (err) {
                     console.log(err);
@@ -237,43 +207,12 @@ async function execute(message, serverQueue) {
             message.channel.send('Error: Invalid YouTube URL');
         }
     }
-
-    // Create and send the buttons
-    const row = new ActionRowBuilder()
-        .addComponents(
-            new ButtonBuilder()
-                .setCustomId('pause')
-                .setLabel('Pause')
-                .setStyle(ButtonStyle.Primary)
-                .setEmoji('⏸️'),
-            new ButtonBuilder()
-                .setCustomId('resume')
-                .setLabel('Resume')
-                .setStyle(ButtonStyle.Primary)
-                .setEmoji('▶️'),
-            new ButtonBuilder()
-                .setCustomId('stop')
-                .setLabel('Stop')
-                .setStyle(ButtonStyle.Danger)
-                .setEmoji('🛑'),
-            new ButtonBuilder()
-                .setCustomId('reverse')
-                .setLabel('Reverse')
-                .setStyle(ButtonStyle.Secondary)
-                .setEmoji('⏮️'),
-            new ButtonBuilder()
-                .setCustomId('skip')
-                .setLabel('Skip')
-                .setStyle(ButtonStyle.Primary)
-                .setEmoji('⏭️')
-        );
-
-    message.channel.send({ content: 'Control the music playback:', components: [row] });
 }
 
 function play(guild, song) {
     const serverQueue = queue.get(guild.id);
     const player = createAudioPlayer();
+    serverQueue.player = player; // Store the player in serverQueue
 
     let resource;
     if (song.source === 'youtube') {
@@ -308,6 +247,7 @@ function play(guild, song) {
 
 function skip(message, serverQueue) {
     if (!serverQueue) return message.channel.send('There is no song that I could skip!');
+    if (!serverQueue.player) return message.channel.send('No player available to skip the song!');
     serverQueue.player.stop();
     message.channel.send('Skipped the song!');
 }
@@ -315,12 +255,13 @@ function skip(message, serverQueue) {
 function stop(message, serverQueue) {
     if (!serverQueue) return message.channel.send('There is no song that I could stop!');
     serverQueue.songs = [];
-    serverQueue.player.stop();
+    if (serverQueue.player) serverQueue.player.stop();
     message.channel.send('Stopped the music!');
 }
 
 function pause(message, serverQueue) {
     if (!serverQueue) return message.channel.send('There is no song playing!');
+    if (!serverQueue.player) return message.channel.send('No player available to pause the music!');
     serverQueue.player.pause();
     serverQueue.paused = true;
 }
@@ -337,6 +278,21 @@ function reverse(message, serverQueue) {
     serverQueue.songs.unshift(serverQueue.previousSong);
     serverQueue.previousSong = null;
     play(message.guild, serverQueue.songs[0]);
+}
+
+function setupConnectionListeners(connection) {
+    connection.off(VoiceConnectionStatus.Disconnected); // Ensure old listeners are removed
+    connection.on(VoiceConnectionStatus.Disconnected, async () => {
+        try {
+            await Promise.race([
+                entersState(connection, VoiceConnectionStatus.Signalling, 5_000),
+                entersState(connection, VoiceConnectionStatus.Connecting, 5_000),
+            ]);
+        } catch (error) {
+            queue.delete(connection.guild.id);
+            connection.destroy();
+        }
+    });
 }
 
 client.login(token);

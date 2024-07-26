@@ -18,7 +18,6 @@ const client = new Client({
 });
 
 const queue = new Map();
-const skipCooldown = new Map();
 
 // Ensure the maximum listeners is set to a higher number to prevent warnings
 require('events').EventEmitter.defaultMaxListeners = 30;
@@ -111,7 +110,6 @@ async function execute(message, serverQueue) {
     let song = null;
     if (args[0].includes('soundcloud.com')) {
         try {
-            // Download SoundCloud track
             const trackInfo = await scdl.getInfo(args[0], process.env.SOUNDCLOUD_CLIENT_ID);
             const track = await scdl.downloadFormat(trackInfo.permalink_url, scdl.FORMATS.OPUS, process.env.SOUNDCLOUD_CLIENT_ID);
             song = {
@@ -262,21 +260,6 @@ function skip(message, serverQueue) {
     if (!message.member.voice.channel) return message.channel.send('You need to be in a voice channel!');
     if (!serverQueue) return message.channel.send('There is no song to skip!');
 
-    const userId = message.author.id;
-    const now = Date.now();
-    const cooldownAmount = 5000; // 5 seconds cooldown
-
-    if (skipCooldown.has(userId)) {
-        const expirationTime = skipCooldown.get(userId) + cooldownAmount;
-        if (now < expirationTime) {
-            const timeLeft = (expirationTime - now) / 1000;
-            return message.channel.send(`Please wait ${timeLeft.toFixed(1)} more seconds before skipping again.`);
-        }
-    }
-
-    skipCooldown.set(userId, now);
-    setTimeout(() => skipCooldown.delete(userId), cooldownAmount);
-
     serverQueue.songs.shift();
     if (serverQueue.songs.length === 0) {
         if (serverQueue.connection) serverQueue.connection.destroy();
@@ -284,8 +267,6 @@ function skip(message, serverQueue) {
     } else {
         play(message.guild, serverQueue.songs[0]);
     }
-
-    message.channel.send(`Skipped to the next song. ${serverQueue.songs.length} song(s) remaining in the queue.`);
 }
 
 function stop(message, serverQueue) {
@@ -299,67 +280,47 @@ function stop(message, serverQueue) {
 
 function pause(message, serverQueue) {
     if (!message.member.voice.channel) return message.channel.send('You need to be in a voice channel!');
-    if (!serverQueue || !serverQueue.player) return message.channel.send('There is no song playing to pause!');
+    if (!serverQueue || !serverQueue.player) return message.channel.send('No song is currently playing.');
 
-    if (!serverQueue.paused) {
-        serverQueue.player.pause(); // Pause the player
-        serverQueue.paused = true;
-        message.channel.send('Playback paused!');
-    } else {
-        message.channel.send('Playback is already paused!');
+    if (serverQueue.player.state.status === AudioPlayerStatus.Paused) {
+        return message.channel.send('Playback is already paused.');
     }
+
+    serverQueue.player.pause();
+    serverQueue.paused = true;
 }
 
 function resume(message, serverQueue) {
     if (!message.member.voice.channel) return message.channel.send('You need to be in a voice channel!');
-    if (!serverQueue || !serverQueue.player) return message.channel.send('There is no song playing to resume!');
+    if (!serverQueue || !serverQueue.player) return message.channel.send('No song is currently playing.');
 
-    if (serverQueue.paused) {
-        serverQueue.player.unpause(); // Resume the player
-        serverQueue.paused = false;
-        message.channel.send('Playback resumed!');
-    } else {
-        message.channel.send('Playback is already playing!');
+    if (serverQueue.player.state.status === AudioPlayerStatus.Playing) {
+        return message.channel.send('Playback is already resumed.');
     }
+
+    serverQueue.player.unpause();
+    serverQueue.paused = false;
 }
 
 function play(guild, song) {
     const serverQueue = queue.get(guild.id);
+    if (!serverQueue) return;
 
-    if (!song) {
-        if (serverQueue.connection) serverQueue.connection.destroy();
-        queue.delete(guild.id);
-        return;
-    }
+    const resource = createAudioResource(song.url, {
+        inputType: AudioPlayerStatus.Stream,
+        inlineVolume: true,
+        metadata: {
+            title: song.title,
+        },
+        highWaterMark: 1 << 25, // 32 MB
+        quality: 'highestaudio'
+    });
 
-    let resource;
-    try {
-        if (song.source === 'youtube') {
-            resource = createAudioResource(ytdl(song.url, { filter: 'audioonly', quality: 'highestaudio', highWaterMark: 1 << 25 }));
-        } else if (song.source === 'soundcloud') {
-            resource = createAudioResource(song.url);
-        }
-    } catch (error) {
-        console.error('Error creating audio resource:', error);
-        serverQueue.songs.shift();
-        if (serverQueue.songs.length > 0) {
-            play(guild, serverQueue.songs[0]);
-        } else {
-            serverQueue.connection.destroy();
-            queue.delete(guild.id);
-        }
-        return;
-    }
+    serverQueue.player = createAudioPlayer();
+    serverQueue.player.play(resource);
 
-    const player = createAudioPlayer();
-    serverQueue.player = player;
-
-    player.play(resource);
-
-    serverQueue.connection.subscribe(player);
-
-    player.on(AudioPlayerStatus.Idle, () => {
-        console.log('Music ended!');
+    serverQueue.connection.subscribe(serverQueue.player);
+    serverQueue.player.on(AudioPlayerStatus.Idle, () => {
         serverQueue.songs.shift();
         if (serverQueue.songs.length > 0) {
             play(guild, serverQueue.songs[0]);
@@ -369,7 +330,16 @@ function play(guild, song) {
         }
     });
 
-    player.on('error', (error) => console.error('Player Error:', error));
+    serverQueue.player.on('error', error => {
+        console.error('Error occurred:', error);
+        serverQueue.songs.shift();
+        if (serverQueue.songs.length > 0) {
+            play(guild, serverQueue.songs[0]);
+        } else {
+            serverQueue.connection.destroy();
+            queue.delete(guild.id);
+        }
+    });
 }
 
 client.login(token);

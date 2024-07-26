@@ -226,35 +226,7 @@ async function execute(message, serverQueue) {
         }
     }
 
-    // Create and send the buttons
-    const row = new ActionRowBuilder()
-        .addComponents(
-            new ButtonBuilder()
-                .setCustomId('pause')
-                .setLabel('Pause')
-                .setStyle(ButtonStyle.Primary)
-                .setEmoji('⏸️'),
-            new ButtonBuilder()
-                .setCustomId('resume')
-                .setLabel('Resume')
-                .setStyle(ButtonStyle.Primary)
-                .setEmoji('▶️'),
-            new ButtonBuilder()
-                .setCustomId('skip')
-                .setLabel('Skip')
-                .setStyle(ButtonStyle.Primary)
-                .setEmoji('⏭️'),
-            new ButtonBuilder()
-                .setCustomId('stop')
-                .setLabel('Stop')
-                .setStyle(ButtonStyle.Danger)
-                .setEmoji('🛑')
-        );
-
-    message.channel.send({
-        content: 'Controls:',
-        components: [row]
-    });
+    
 }
 
 function skip(message, serverQueue) {

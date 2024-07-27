@@ -308,7 +308,7 @@ function play(guild, song) {
     player.play(resource);
 
     serverQueue.connection.subscribe(player);
-
+	serverQueue.textChannel.send(`Now playing: **${song.title}**`);
     player.on(AudioPlayerStatus.Idle, () => {
         console.log('Music ended!');
         serverQueue.songs.shift();

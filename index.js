@@ -241,6 +241,34 @@ function skip(message, serverQueue) {
         play(message.guild, serverQueue.songs[0]);
     }
 	 message.channel.send(`Skipped to the next song. ${serverQueue.songs.length} song(s) remaining in the queue. Now playing: **${serverQueue.songs[0].title}**`);
+	 const row = new ActionRowBuilder()
+        .addComponents(
+            new ButtonBuilder()
+                .setCustomId('pause')
+                .setLabel('Pause')
+                .setStyle(ButtonStyle.Primary)
+                .setEmoji('⏸️'),
+            new ButtonBuilder()
+                .setCustomId('resume')
+                .setLabel('Resume')
+                .setStyle(ButtonStyle.Primary)
+                .setEmoji('▶️'),
+            new ButtonBuilder()
+                .setCustomId('skip')
+                .setLabel('Skip')
+                .setStyle(ButtonStyle.Primary)
+                .setEmoji('⏭️'),
+            new ButtonBuilder()
+                .setCustomId('stop')
+                .setLabel('Stop')
+                .setStyle(ButtonStyle.Danger)
+                .setEmoji('🛑')
+        );
+
+    message.channel.send({
+        content: 'Controls:',
+        components: [row]
+    });
 }
 
 function stop(message, serverQueue) {
@@ -326,6 +354,34 @@ function play(guild, song) {
     });
 
     player.on('error', (error) => console.error('Player Error:', error));
+	const row = new ActionRowBuilder()
+        .addComponents(
+            new ButtonBuilder()
+                .setCustomId('pause')
+                .setLabel('Pause')
+                .setStyle(ButtonStyle.Primary)
+                .setEmoji('⏸️'),
+            new ButtonBuilder()
+                .setCustomId('resume')
+                .setLabel('Resume')
+                .setStyle(ButtonStyle.Primary)
+                .setEmoji('▶️'),
+            new ButtonBuilder()
+                .setCustomId('skip')
+                .setLabel('Skip')
+                .setStyle(ButtonStyle.Primary)
+                .setEmoji('⏭️'),
+            new ButtonBuilder()
+                .setCustomId('stop')
+                .setLabel('Stop')
+                .setStyle(ButtonStyle.Danger)
+                .setEmoji('🛑')
+        );
+
+    message.channel.send({
+        content: 'Controls:',
+        components: [row]
+    });
 
     serverQueue.textChannel.send(`Now playing: **${song.title}**`);
 }

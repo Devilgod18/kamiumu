@@ -192,11 +192,12 @@ async function execute(message, serverQueue) {
         content: 'Controls:',
         components: [row]
     });
-	const firstSong = queueContruct.songs[0];
-	if (firstSong) {
-    message.channel.send(`Now playing: **${firstSong.title}**`);
-}
 
+    // Show the currently playing song after showing the buttons
+    const firstSong = queueContruct.songs[0];
+    if (firstSong) {
+        message.channel.send(`Now playing: **${firstSong.title}**`);
+    }
 }
 
 async function handleQueue(guild, queueContruct, song) {
@@ -241,7 +242,7 @@ function skip(message, serverQueue) {
         play(message.guild, serverQueue.songs[0]);
     }
 
-    message.channel.send(`Skipped to the next song. ${serverQueue.songs.length} song(s) remaining in the queue.`);
+     message.channel.send(`Skipped to the next song. ${serverQueue.songs.length} song(s) remaining in the queue.`);
 }
 
 function stop(message, serverQueue) {
@@ -314,6 +315,8 @@ function play(guild, song) {
 
     serverQueue.connection.subscribe(player);
 
+    serverQueue.textChannel.send(`Now playing: **${song.title}**`);
+
     player.on(AudioPlayerStatus.Idle, () => {
         console.log('Music ended!');
         serverQueue.songs.shift();
@@ -329,4 +332,3 @@ function play(guild, song) {
 }
 
 client.login(token);
-

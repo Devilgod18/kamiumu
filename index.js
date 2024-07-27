@@ -145,11 +145,6 @@ async function execute(message, serverQueue) {
                 taskQueue.push(() => handleQueue(message.guild, queueContruct, song));
             }
             message.channel.send(`${playlist.items.length} Song playlist added to the queue!`);
-            // Show the currently playing song after adding all songs from the playlist
-            if (!serverQueue) {
-                const firstSong = queueContruct.songs[0];
-                queueContruct.textChannel.send(`Now playing: **${firstSong.title}**`);
-            }
         } catch (err) {
             console.log('Error with YouTube playlist:', err);
             message.channel.send('Error retrieving YouTube playlist.');
@@ -197,6 +192,11 @@ async function execute(message, serverQueue) {
         content: 'Controls:',
         components: [row]
     });
+	const firstSong = queueContruct.songs[0];
+	if (firstSong) {
+    message.channel.send(`Now playing: **${firstSong.title}**`);
+}
+
 }
 
 async function handleQueue(guild, queueContruct, song) {
@@ -313,6 +313,7 @@ function play(guild, song) {
     player.play(resource);
 
     serverQueue.connection.subscribe(player);
+
     player.on(AudioPlayerStatus.Idle, () => {
         console.log('Music ended!');
         serverQueue.songs.shift();
@@ -328,5 +329,4 @@ function play(guild, song) {
 }
 
 client.login(token);
-
 

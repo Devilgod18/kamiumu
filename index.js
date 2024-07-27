@@ -240,7 +240,7 @@ function skip(message, serverQueue) {
     } else {
         play(message.guild, serverQueue.songs[0]);
     }
-	 message.channel.send(`Skipped to the next song. ${serverQueue.songs.length} song(s) remaining in the queue.`);
+	 message.channel.send(`Skipped to the next song. ${serverQueue.songs.length} song(s) remaining in the queue. Now playing: **${serverQueue.songs[0].title}**`);
 }
 
 function stop(message, serverQueue) {

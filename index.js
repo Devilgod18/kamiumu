@@ -193,10 +193,8 @@ async function execute(message, serverQueue) {
         components: [row]
     });
 
-    // Show the currently playing song after showing the buttons
-    const firstSong = queueContruct.songs[0];
-    if (firstSong) {
-        message.channel.send(`Now playing: **${firstSong.title}**`);
+    if (song) {
+        message.channel.send(`Now playing: **${song.title}**`);
     }
 }
 
@@ -238,11 +236,11 @@ function skip(message, serverQueue) {
     if (serverQueue.songs.length === 0) {
         if (serverQueue.connection) serverQueue.connection.destroy();
         queue.delete(message.guild.id);
+        message.channel.send('No more songs in the queue.');
     } else {
         play(message.guild, serverQueue.songs[0]);
     }
-
-     message.channel.send(`Skipped to the next song. ${serverQueue.songs.length} song(s) remaining in the queue.`);
+	 message.channel.send(`Skipped to the next song. ${serverQueue.songs.length} song(s) remaining in the queue.`);
 }
 
 function stop(message, serverQueue) {
@@ -252,6 +250,7 @@ function stop(message, serverQueue) {
     serverQueue.songs = [];
     if (serverQueue.connection) serverQueue.connection.destroy();
     queue.delete(message.guild.id);
+    message.channel.send('Playback stopped.');
 }
 
 function pause(message, serverQueue) {
@@ -315,8 +314,6 @@ function play(guild, song) {
 
     serverQueue.connection.subscribe(player);
 
-    serverQueue.textChannel.send(`Now playing: **${song.title}**`);
-
     player.on(AudioPlayerStatus.Idle, () => {
         console.log('Music ended!');
         serverQueue.songs.shift();
@@ -329,6 +326,10 @@ function play(guild, song) {
     });
 
     player.on('error', (error) => console.error('Player Error:', error));
+
+    serverQueue.textChannel.send(`Now playing: **${song.title}**`);
 }
 
 client.login(token);
+
+

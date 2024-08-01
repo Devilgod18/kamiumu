@@ -105,12 +105,7 @@ async function execute(message, serverQueue) {
     if (!permissions.has(PermissionFlagsBits.Connect) || !permissions.has(PermissionFlagsBits.Speak)) {
         return message.channel.send('I need the permissions to join and speak in your voice channel!');
     }
-	const botVoiceChannel = message.guild.me.voice.channel;
-
-    // If the bot is already connected to a different channel
-    if (botVoiceChannel && botVoiceChannel.id !== voiceChannel.id) {
-        return message.channel.send('I am already playing music in a different channel.');
-    }
+	
 
     const queueContruct = {
         textChannel: message.channel,

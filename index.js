@@ -50,14 +50,21 @@ client.on('messageCreate', async message => {
     if (!message.content.startsWith(prefix)) return;
 
     const voiceChannelId = message.member.voice.channel?.id;
-    const serverQueue = queue.get(message.guild.id)?.[voiceChannelId];
+    if (!voiceChannelId) return message.channel.send('You need to be in a voice channel!');
+    
+    const guildQueue = queue.get(message.guild.id);
+    if (!guildQueue) {
+        queue.set(message.guild.id, {});
+    }
+    
+    const serverQueue = queue.get(message.guild.id)[voiceChannelId];
 
     if (message.content.startsWith(`${prefix}play`)) {
-        await execute(message, serverQueue);
+        await execute(message, serverQueue, voiceChannelId);
     } else if (message.content.startsWith(`${prefix}skip`)) {
-        skip(message, serverQueue);
+        skip(message, serverQueue, voiceChannelId);
     } else if (message.content.startsWith(`${prefix}stop`)) {
-        stop(message, serverQueue);
+        stop(message, serverQueue, voiceChannelId);
     } else if (message.content.startsWith(`${prefix}pause`)) {
         pause(message, serverQueue);
     } else if (message.content.startsWith(`${prefix}resume`)) {
@@ -71,6 +78,8 @@ client.on(Events.InteractionCreate, async interaction => {
     if (!interaction.isButton()) return;
 
     const voiceChannelId = interaction.member.voice.channel?.id;
+    if (!voiceChannelId) return interaction.reply({ content: 'You need to be in a voice channel!', ephemeral: true });
+
     const serverQueue = queue.get(interaction.guild.id)?.[voiceChannelId];
 
     if (!serverQueue) {
@@ -87,17 +96,17 @@ client.on(Events.InteractionCreate, async interaction => {
             interaction.reply({ content: 'Playback resumed!', ephemeral: true });
             break;
         case 'skip':
-            skip(interaction.message, serverQueue);
+            skip(interaction.message, serverQueue, voiceChannelId);
             interaction.reply({ content: 'Song skipped!', ephemeral: true });
             break;
         case 'stop':
-            stop(interaction.message, serverQueue);
+            stop(interaction.message, serverQueue, voiceChannelId);
             interaction.reply({ content: 'Playback stopped!', ephemeral: true });
             break;
     }
 });
 
-async function execute(message, serverQueue) {
+async function execute(message, serverQueue, voiceChannelId) {
     const args = message.content.split(' ').slice(1);
     const searchString = args.join(' ');
     const voiceChannel = message.member.voice.channel;
@@ -130,7 +139,7 @@ async function execute(message, serverQueue) {
                 url: track,
                 source: 'soundcloud'
             };
-            taskQueue.push(() => handleQueue(message.guild, voiceChannel.id, queueContruct, song));
+            taskQueue.push(() => handleQueue(message.guild, voiceChannelId, queueContruct, song));
         } catch (err) {
             console.log('Error with SoundCloud track:', err);
             message.channel.send('Error retrieving or downloading SoundCloud track.');
@@ -144,7 +153,7 @@ async function execute(message, serverQueue) {
                     url: video.shortUrl,
                     source: 'youtube'
                 };
-                taskQueue.push(() => handleQueue(message.guild, voiceChannel.id, queueContruct, song));
+                taskQueue.push(() => handleQueue(message.guild, voiceChannelId, queueContruct, song));
             }
             message.channel.send(`${playlist.items.length} Song playlist added to the queue!`);
         } catch (err) {
@@ -159,7 +168,7 @@ async function execute(message, serverQueue) {
                 url: songInfo.videoDetails.video_url,
                 source: 'youtube'
             };
-            taskQueue.push(() => handleQueue(message.guild, voiceChannel.id, queueContruct, song));
+            taskQueue.push(() => handleQueue(message.guild, voiceChannelId, queueContruct, song));
         } catch (err) {
             console.log('Error with YouTube video:', err);
             message.channel.send('Error retrieving YouTube video.');
@@ -257,10 +266,10 @@ function play(guild, voiceChannelId, song) {
 
     let resource;
     try {
-        if (song.source === 'youtube') {
-            resource = createAudioResource(ytdl(song.url, { filter: 'audioonly', highWaterMark: 1 << 25 }));
-        } else if (song.source === 'soundcloud') {
-            resource = createAudioResource(song.url);
+        if (song.source === 'soundcloud') {
+            resource = createAudioResource(song.url, { inlineVolume: true });
+        } else {
+            resource = createAudioResource(ytdl(song.url, { filter: 'audioonly' }), { inlineVolume: true });
         }
     } catch (error) {
         console.error('Error creating audio resource:', error);
@@ -268,7 +277,7 @@ function play(guild, voiceChannelId, song) {
         if (serverQueue.songs.length > 0) {
             play(guild, voiceChannelId, serverQueue.songs[0]);
         } else {
-            serverQueue.connection.destroy();
+            if (serverQueue.connection) serverQueue.connection.destroy();
             delete queue.get(guild.id)[voiceChannelId];
             if (Object.keys(queue.get(guild.id)).length === 0) {
                 queue.delete(guild.id);
@@ -281,7 +290,6 @@ function play(guild, voiceChannelId, song) {
     serverQueue.player = player;
 
     player.play(resource);
-
     serverQueue.connection.subscribe(player);
 
     player.on(AudioPlayerStatus.Idle, () => {
@@ -290,7 +298,7 @@ function play(guild, voiceChannelId, song) {
         if (serverQueue.songs.length > 0) {
             play(guild, voiceChannelId, serverQueue.songs[0]);
         } else {
-            serverQueue.connection.destroy();
+            if (serverQueue.connection) serverQueue.connection.destroy();
             delete queue.get(guild.id)[voiceChannelId];
             if (Object.keys(queue.get(guild.id)).length === 0) {
                 queue.delete(guild.id);
@@ -299,9 +307,8 @@ function play(guild, voiceChannelId, song) {
     });
 
     player.on('error', (error) => console.error('Player Error:', error));
-    
+
     serverQueue.textChannel.send(`Now playing: **${song.title}**`).then(() => {
-        // Create and send the button controls after announcing the song
         const row = new ActionRowBuilder()
             .addComponents(
                 new ButtonBuilder()
@@ -333,9 +340,7 @@ function play(guild, voiceChannelId, song) {
     });
 }
 
-function skip(message, serverQueue) {
-    const voiceChannelId = message.member.voice.channel?.id;
-    if (!voiceChannelId) return message.channel.send('You need to be in a voice channel!');
+function skip(message, serverQueue, voiceChannelId) {
     if (!serverQueue) return message.channel.send('There is no song to skip!');
 
     serverQueue.songs.shift();
@@ -352,9 +357,7 @@ function skip(message, serverQueue) {
     message.channel.send(`Skipped to the next song. ${serverQueue.songs.length} song(s) remaining in the queue. Now playing: **${serverQueue.songs[0].title}**`);
 }
 
-function stop(message, serverQueue) {
-    const voiceChannelId = message.member.voice.channel?.id;
-    if (!voiceChannelId) return message.channel.send('You need to be in a voice channel!');
+function stop(message, serverQueue, voiceChannelId) {
     if (!serverQueue) return message.channel.send('There is no song to stop!');
 
     serverQueue.songs = [];
@@ -367,12 +370,10 @@ function stop(message, serverQueue) {
 }
 
 function pause(message, serverQueue) {
-    const voiceChannelId = message.member.voice.channel?.id;
-    if (!voiceChannelId) return message.channel.send('You need to be in a voice channel!');
     if (!serverQueue || !serverQueue.player) return message.channel.send('There is no song playing to pause!');
 
     if (!serverQueue.paused) {
-        serverQueue.player.pause(); // Pause the player
+        serverQueue.player.pause();
         serverQueue.paused = true;
         message.channel.send('Playback paused!');
     } else {
@@ -381,12 +382,10 @@ function pause(message, serverQueue) {
 }
 
 function resume(message, serverQueue) {
-    const voiceChannelId = message.member.voice.channel?.id;
-    if (!voiceChannelId) return message.channel.send('You need to be in a voice channel!');
     if (!serverQueue || !serverQueue.player) return message.channel.send('There is no song playing to resume!');
 
     if (serverQueue.paused) {
-        serverQueue.player.unpause(); // Resume the player
+        serverQueue.player.unpause();
         serverQueue.paused = false;
         message.channel.send('Playback resumed!');
     } else {
@@ -395,3 +394,5 @@ function resume(message, serverQueue) {
 }
 
 client.login(token);
+
+

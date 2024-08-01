@@ -52,12 +52,21 @@ client.on('messageCreate', async message => {
     const voiceChannelId = message.member.voice.channel?.id;
     if (!voiceChannelId) return message.channel.send('You need to be in a voice channel!');
     
-    const guildQueue = queue.get(message.guild.id);
-    if (!guildQueue) {
-        queue.set(message.guild.id, {});
-    }
+    const guildQueue = queue.get(message.guild.id) || {};
+    queue.set(message.guild.id, guildQueue);
     
-    const serverQueue = queue.get(message.guild.id)[voiceChannelId];
+    const serverQueue = guildQueue[voiceChannelId] || {
+        textChannel: message.channel,
+        voiceChannel: message.member.voice.channel,
+        connection: null,
+        songs: [],
+        volume: 5,
+        playing: true,
+        isPlayingSoundCloud: false,
+        player: null,
+        paused: false
+    };
+    guildQueue[voiceChannelId] = serverQueue;
 
     if (message.content.startsWith(`${prefix}play`)) {
         await execute(message, serverQueue, voiceChannelId);
@@ -117,18 +126,6 @@ async function execute(message, serverQueue, voiceChannelId) {
         return message.channel.send('I need the permissions to join and speak in your voice channel!');
     }
 
-    const queueContruct = {
-        textChannel: message.channel,
-        voiceChannel: voiceChannel,
-        connection: null,
-        songs: [],
-        volume: 5,
-        playing: true,
-        isPlayingSoundCloud: false,
-        player: null,
-        paused: false
-    };
-
     let song = null;
     if (args[0].includes('soundcloud.com')) {
         try {
@@ -139,7 +136,7 @@ async function execute(message, serverQueue, voiceChannelId) {
                 url: track,
                 source: 'soundcloud'
             };
-            taskQueue.push(() => handleQueue(message.guild, voiceChannelId, queueContruct, song));
+            taskQueue.push(() => handleQueue(message.guild, voiceChannelId, serverQueue, song));
         } catch (err) {
             console.log('Error with SoundCloud track:', err);
             message.channel.send('Error retrieving or downloading SoundCloud track.');
@@ -153,7 +150,7 @@ async function execute(message, serverQueue, voiceChannelId) {
                     url: video.shortUrl,
                     source: 'youtube'
                 };
-                taskQueue.push(() => handleQueue(message.guild, voiceChannelId, queueContruct, song));
+                taskQueue.push(() => handleQueue(message.guild, voiceChannelId, serverQueue, song));
             }
             message.channel.send(`${playlist.items.length} Song playlist added to the queue!`);
         } catch (err) {
@@ -168,7 +165,7 @@ async function execute(message, serverQueue, voiceChannelId) {
                 url: songInfo.videoDetails.video_url,
                 source: 'youtube'
             };
-            taskQueue.push(() => handleQueue(message.guild, voiceChannelId, queueContruct, song));
+            taskQueue.push(() => handleQueue(message.guild, voiceChannelId, serverQueue, song));
         } catch (err) {
             console.log('Error with YouTube video:', err);
             message.channel.send('Error retrieving YouTube video.');
@@ -209,10 +206,10 @@ async function execute(message, serverQueue, voiceChannelId) {
     }
 }
 
-async function handleQueue(guild, voiceChannelId, queueContruct, song) {
-    const guildQueue = queue.get(guild.id) || {};
+async function handleQueue(guild, voiceChannelId, serverQueue, song) {
+    const guildQueue = queue.get(guild.id);
     const voiceChannelQueue = guildQueue[voiceChannelId] || {
-        ...queueContruct,
+        ...serverQueue,
         songs: []
     };
 
@@ -308,36 +305,7 @@ function play(guild, voiceChannelId, song) {
 
     player.on('error', (error) => console.error('Player Error:', error));
 
-    serverQueue.textChannel.send(`Now playing: **${song.title}**`).then(() => {
-        const row = new ActionRowBuilder()
-            .addComponents(
-                new ButtonBuilder()
-                    .setCustomId('pause')
-                    .setLabel('Pause')
-                    .setStyle(ButtonStyle.Primary)
-                    .setEmoji('⏸️'),
-                new ButtonBuilder()
-                    .setCustomId('resume')
-                    .setLabel('Resume')
-                    .setStyle(ButtonStyle.Primary)
-                    .setEmoji('▶️'),
-                new ButtonBuilder()
-                    .setCustomId('skip')
-                    .setLabel('Skip')
-                    .setStyle(ButtonStyle.Primary)
-                    .setEmoji('⏭️'),
-                new ButtonBuilder()
-                    .setCustomId('stop')
-                    .setLabel('Stop')
-                    .setStyle(ButtonStyle.Danger)
-                    .setEmoji('🛑')
-            );
-
-        serverQueue.textChannel.send({
-            content: 'Controls:',
-            components: [row]
-        });
-    });
+    serverQueue.textChannel.send(`Now playing: **${song.title}**`);
 }
 
 function skip(message, serverQueue, voiceChannelId) {
@@ -394,5 +362,3 @@ function resume(message, serverQueue) {
 }
 
 client.login(token);
-
-

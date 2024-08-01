@@ -118,11 +118,6 @@ async function execute(message, serverQueue) {
         paused: false
     };
 
-    // Check if the bot is already connected to a voice channel
-    if (serverQueue && serverQueue.connection && serverQueue.connection.joinConfig.channelId !== voiceChannel.id) {
-        return message.channel.send('I am already playing music in another voice channel!');
-    }
-
     let song = null;
     if (args[0].includes('soundcloud.com')) {
         try {
@@ -202,7 +197,6 @@ async function execute(message, serverQueue) {
         message.channel.send(`Now playing: **${song.title}**`);
     }
 }
-
 
 async function handleQueue(guild, queueContruct, song) {
     const serverQueue = queue.get(guild.id);

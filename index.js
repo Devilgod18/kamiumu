@@ -101,11 +101,18 @@ async function execute(message, serverQueue) {
     const voiceChannel = message.member.voice.channel;
 
     if (!voiceChannel) return message.channel.send('You need to be in a voice channel!');
+
+    const botVoiceChannel = voiceChannel.guild.voiceStates.cache.get(message.client.user.id)?.channel;
+
+    // Check if the bot is already in a voice channel
+    if (botVoiceChannel && botVoiceChannel.id !== voiceChannel.id) {
+        return message.channel.send('I am already playing music in another channel. Please wait until the current music is finished.');
+    }
+
     const permissions = voiceChannel.permissionsFor(message.client.user);
     if (!permissions.has(PermissionFlagsBits.Connect) || !permissions.has(PermissionFlagsBits.Speak)) {
         return message.channel.send('I need the permissions to join and speak in your voice channel!');
     }
-	
 
     const queueContruct = {
         textChannel: message.channel,
@@ -198,6 +205,7 @@ async function execute(message, serverQueue) {
         message.channel.send(`Now playing: **${song.title}**`);
     }
 }
+
 
 async function handleQueue(guild, queueContruct, song) {
     const serverQueue = queue.get(guild.id);

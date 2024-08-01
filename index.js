@@ -128,7 +128,7 @@ async function execute(message, serverQueue) {
                 url: track,
                 source: 'soundcloud'
             };
-            taskQueue.push(() => handleQueue(message.guild.id, queueContruct, song));
+            taskQueue.push(() => handleQueue(message.guild, queueContruct, song));
         } catch (err) {
             console.log('Error with SoundCloud track:', err);
             message.channel.send('Error retrieving or downloading SoundCloud track.');
@@ -142,7 +142,7 @@ async function execute(message, serverQueue) {
                     url: video.shortUrl,
                     source: 'youtube'
                 };
-                taskQueue.push(() => handleQueue(message.guild.id, queueContruct, song));
+                taskQueue.push(() => handleQueue(message.guild, queueContruct, song));
             }
             message.channel.send(`${playlist.items.length} Song playlist added to the queue!`);
         } catch (err) {
@@ -157,7 +157,7 @@ async function execute(message, serverQueue) {
                 url: songInfo.videoDetails.video_url,
                 source: 'youtube'
             };
-            taskQueue.push(() => handleQueue(message.guild.id, queueContruct, song));
+            taskQueue.push(() => handleQueue(message.guild, queueContruct, song));
         } catch (err) {
             console.log('Error with YouTube video:', err);
             message.channel.send('Error retrieving YouTube video.');
@@ -198,16 +198,16 @@ async function execute(message, serverQueue) {
     }
 }
 
-async function handleQueue(guildId, queueContruct, song) {
-    const serverQueue = queue.get(guildId);
+async function handleQueue(guild, queueContruct, song) {
+    const serverQueue = queue.get(guild.id);
 
     if (!serverQueue) {
-        queue.set(guildId, queueContruct);
+        queue.set(guild.id, queueContruct);
         queueContruct.songs.push(song);
         const connection = joinVoiceChannel({
             channelId: queueContruct.voiceChannel.id,
-            guildId: guildId,
-            adapterCreator: client.guilds.cache.get(guildId).voiceAdapterCreator
+            guildId: guild.id,
+            adapterCreator: guild.voiceAdapterCreator
         });
         queueContruct.connection = connection;
         connection.on(VoiceConnectionStatus.Disconnected, async () => {
@@ -217,11 +217,11 @@ async function handleQueue(guildId, queueContruct, song) {
                     entersState(connection, VoiceConnectionStatus.Connecting, 5_000),
                 ]);
             } catch (error) {
-                queue.delete(guildId);
+                queue.delete(guild.id);
                 connection.destroy();
             }
         });
-        play(guildId, queueContruct.songs[0]);
+        play(guild, queueContruct.songs[0]);
     } else {
         serverQueue.songs.push(song);
         console.log(`${song.title} added to the queue!`);
@@ -238,9 +238,9 @@ function skip(message, serverQueue) {
         queue.delete(message.guild.id);
         message.channel.send('No more songs in the queue.');
     } else {
-        play(message.guild.id, serverQueue.songs[0]);
+        play(message.guild, serverQueue.songs[0]);
     }
-    message.channel.send(`Skipped to the next song. ${serverQueue.songs.length} song(s) remaining in the queue. Now playing: **${serverQueue.songs[0].title}**`);
+	 message.channel.send(`Skipped to the next song. ${serverQueue.songs.length} song(s) remaining in the queue. Now playing: **${serverQueue.songs[0].title}**`);
 }
 
 function stop(message, serverQueue) {
@@ -279,12 +279,12 @@ function resume(message, serverQueue) {
     }
 }
 
-function play(guildId, song) {
-    const serverQueue = queue.get(guildId);
+function play(guild, song) {
+    const serverQueue = queue.get(guild.id);
 
     if (!song) {
         if (serverQueue.connection) serverQueue.connection.destroy();
-        queue.delete(guildId);
+        queue.delete(guild.id);
         return;
     }
 
@@ -299,10 +299,10 @@ function play(guildId, song) {
         console.error('Error creating audio resource:', error);
         serverQueue.songs.shift();
         if (serverQueue.songs.length > 0) {
-            play(guildId, serverQueue.songs[0]);
+            play(guild, serverQueue.songs[0]);
         } else {
             serverQueue.connection.destroy();
-            queue.delete(guildId);
+            queue.delete(guild.id);
         }
         return;
     }
@@ -318,15 +318,16 @@ function play(guildId, song) {
         console.log('Music ended!');
         serverQueue.songs.shift();
         if (serverQueue.songs.length > 0) {
-            play(guildId, serverQueue.songs[0]);
+            play(guild, serverQueue.songs[0]);
         } else {
             serverQueue.connection.destroy();
-            queue.delete(guildId);
+            queue.delete(guild.id);
         }
     });
 
     player.on('error', (error) => console.error('Player Error:', error));
 	
+
     serverQueue.textChannel.send(`Now playing: **${song.title}**`).then(() => {
         // Create and send the button controls after announcing the song
         const row = new ActionRowBuilder()
@@ -361,3 +362,5 @@ function play(guildId, song) {
 }
 
 client.login(token);
+
+

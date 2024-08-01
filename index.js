@@ -51,11 +51,6 @@ client.on('messageCreate', async message => {
 
     const serverQueue = queue.get(message.guild.id);
 
-    // Check if the bot is in the same voice channel as the user
-    if (serverQueue && message.member.voice.channel !== serverQueue.voiceChannel) {
-        return message.channel.send('You need to be in the same voice channel as the bot!');
-    }
-
     if (message.content.startsWith(`${prefix}play`)) {
         await execute(message, serverQueue);
     } else if (message.content.startsWith(`${prefix}skip`)) {
@@ -75,11 +70,6 @@ client.on(Events.InteractionCreate, async interaction => {
     if (!interaction.isButton()) return;
 
     const serverQueue = queue.get(interaction.guild.id);
-
-    // Check if the bot is in the same voice channel as the user
-    if (serverQueue && interaction.member.voice.channel !== serverQueue.voiceChannel) {
-        return interaction.reply({ content: 'You need to be in the same voice channel as the bot!', ephemeral: true });
-    }
 
     if (!serverQueue) {
         return interaction.reply({ content: 'There is nothing playing right now.', ephemeral: true });
@@ -114,12 +104,6 @@ async function execute(message, serverQueue) {
     const permissions = voiceChannel.permissionsFor(message.client.user);
     if (!permissions.has(PermissionFlagsBits.Connect) || !permissions.has(PermissionFlagsBits.Speak)) {
         return message.channel.send('I need the permissions to join and speak in your voice channel!');
-    }
-
-    // Ensure the bot is not already in a different voice channel
-    const botVoiceChannel = voiceChannel.guild.me.voice.channel;
-    if (botVoiceChannel && botVoiceChannel.id !== voiceChannel.id) {
-        return message.channel.send('I am already in another voice channel.');
     }
 
     const queueContruct = {
@@ -247,7 +231,6 @@ async function handleQueue(guild, queueContruct, song) {
 function skip(message, serverQueue) {
     if (!message.member.voice.channel) return message.channel.send('You need to be in a voice channel!');
     if (!serverQueue) return message.channel.send('There is no song to skip!');
-    if (message.member.voice.channel !== serverQueue.voiceChannel) return message.channel.send('You need to be in the same voice channel as the bot!');
 
     serverQueue.songs.shift();
     if (serverQueue.songs.length === 0) {
@@ -257,13 +240,12 @@ function skip(message, serverQueue) {
     } else {
         play(message.guild, serverQueue.songs[0]);
     }
-    message.channel.send(`Skipped to the next song. ${serverQueue.songs.length} song(s) remaining in the queue. Now playing: **${serverQueue.songs[0].title}**`);
+	 message.channel.send(`Skipped to the next song. ${serverQueue.songs.length} song(s) remaining in the queue. Now playing: **${serverQueue.songs[0].title}**`);
 }
 
 function stop(message, serverQueue) {
     if (!message.member.voice.channel) return message.channel.send('You need to be in a voice channel!');
     if (!serverQueue) return message.channel.send('There is no song to stop!');
-    if (message.member.voice.channel !== serverQueue.voiceChannel) return message.channel.send('You need to be in the same voice channel as the bot!');
 
     serverQueue.songs = [];
     if (serverQueue.connection) serverQueue.connection.destroy();
@@ -274,7 +256,6 @@ function stop(message, serverQueue) {
 function pause(message, serverQueue) {
     if (!message.member.voice.channel) return message.channel.send('You need to be in a voice channel!');
     if (!serverQueue || !serverQueue.player) return message.channel.send('There is no song playing to pause!');
-    if (message.member.voice.channel !== serverQueue.voiceChannel) return message.channel.send('You need to be in the same voice channel as the bot!');
 
     if (!serverQueue.paused) {
         serverQueue.player.pause(); // Pause the player
@@ -288,7 +269,6 @@ function pause(message, serverQueue) {
 function resume(message, serverQueue) {
     if (!message.member.voice.channel) return message.channel.send('You need to be in a voice channel!');
     if (!serverQueue || !serverQueue.player) return message.channel.send('There is no song playing to resume!');
-    if (message.member.voice.channel !== serverQueue.voiceChannel) return message.channel.send('You need to be in the same voice channel as the bot!');
 
     if (serverQueue.paused) {
         serverQueue.player.unpause(); // Resume the player
@@ -346,7 +326,8 @@ function play(guild, song) {
     });
 
     player.on('error', (error) => console.error('Player Error:', error));
-    
+	
+
     serverQueue.textChannel.send(`Now playing: **${song.title}**`).then(() => {
         // Create and send the button controls after announcing the song
         const row = new ActionRowBuilder()
@@ -381,6 +362,5 @@ function play(guild, song) {
 }
 
 client.login(token);
-
 
 

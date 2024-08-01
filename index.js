@@ -201,9 +201,20 @@ async function execute(message, serverQueue) {
 async function handleQueue(guild, queueContruct, song) {
     const serverQueue = queue.get(guild.id);
 
+    // Check if the bot is already connected to a voice channel in the guild
+    const existingConnection = guild.voiceStates.cache.find(vc => vc.connection && vc.connection.joinedChannel && vc.connection.joinedChannel.guild.id === guild.id);
+
     if (!serverQueue) {
         queue.set(guild.id, queueContruct);
         queueContruct.songs.push(song);
+
+        if (existingConnection) {
+            // Notify users that the bot is already in another channel
+            queueContruct.textChannel.send(`I am already playing music in another voice channel: <#${existingConnection.channel.id}>`);
+            return;
+        }
+
+        // Create a new connection
         const connection = joinVoiceChannel({
             channelId: queueContruct.voiceChannel.id,
             guildId: guild.id,
@@ -221,12 +232,14 @@ async function handleQueue(guild, queueContruct, song) {
                 connection.destroy();
             }
         });
+
         play(guild, queueContruct.songs[0]);
     } else {
         serverQueue.songs.push(song);
         console.log(`${song.title} added to the queue!`);
     }
 }
+
 
 function skip(message, serverQueue) {
     if (!message.member.voice.channel) return message.channel.send('You need to be in a voice channel!');

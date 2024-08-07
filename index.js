@@ -11,18 +11,17 @@ const youtube = new YouTube(process.env.YOUTUBE_API_KEY);
 // Replace these with your actual cookie values from EditThisCookie
 const cookies = [
   {
-    "domain": ".youtube.com",
-    "expirationDate": 1756169387.351292,
+     "domain": ".youtube.com",
+    "expirationDate": 1756169387.351173,
     "hostOnly": false,
-    "httpOnly": true,
-    "name": "__Secure-1PSID",
+    "httpOnly": false,
+    "name": "__Secure-1PAPISID",
     "path": "/",
     "sameSite": "unspecified",
     "secure": true,
     "session": false,
     "storeId": "0",
-    "value": "g.a000mAjrg_tsgRAegxfz73becCejuuFF1e0BLs9DvFoykpTRah3SsDoatGB57qYWfShfIDM3OQACgYKAbwSARMSFQHGX2Mi-8OQPMs7uN9mijC49pJ9thoVAUF8yKpOq__3SljSOmbrxpbdtmtc0076",
-    "id": 2
+    "value": "niPKWaU4ljm6sord/A1N09p-Ha-OPrFOSn"
   },
   // Add additional cookies if needed
 ];

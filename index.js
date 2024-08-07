@@ -1,4 +1,4 @@
-﻿const { Client, GatewayIntentBits, PermissionFlagsBits, ActionRowBuilder, ButtonBuilder, ButtonStyle, Events, InteractionType } = require('discord.js');
+﻿﻿const { Client, GatewayIntentBits, PermissionFlagsBits, ActionRowBuilder, ButtonBuilder, ButtonStyle, Events, InteractionType } = require('discord.js');
 const ytdl = require('@distube/ytdl-core');
 const scdl = require('soundcloud-downloader').default;
 const ytpl = require('ytpl');
@@ -7,6 +7,27 @@ const YouTube = require('discord-youtube-api');
 const { joinVoiceChannel, createAudioPlayer, createAudioResource, AudioPlayerStatus, VoiceConnectionStatus, entersState } = require('@discordjs/voice');
 const token = process.env.token;
 const youtube = new YouTube(process.env.YOUTUBE_API_KEY);
+
+// Replace these with your actual cookie values from EditThisCookie
+const cookies = [
+  {
+    "domain": ".youtube.com",
+    "expirationDate": 1756169387.351292,
+    "hostOnly": false,
+    "httpOnly": true,
+    "name": "__Secure-1PSID",
+    "path": "/",
+    "sameSite": "unspecified",
+    "secure": true,
+    "session": false,
+    "storeId": "0",
+    "value": "g.a000mAjrg_tsgRAegxfz73becCejuuFF1e0BLs9DvFoykpTRah3SsDoatGB57qYWfShfIDM3OQACgYKAbwSARMSFQHGX2Mi-8OQPMs7uN9mijC49pJ9thoVAUF8yKpOq__3SljSOmbrxpbdtmtc0076",
+    "id": 2
+  },
+  // Add additional cookies if needed
+];
+
+const agent = ytdl.createAgent(cookies);
 
 const client = new Client({
     intents: [
@@ -101,14 +122,12 @@ async function execute(message, serverQueue) {
     const voiceChannel = message.member.voice.channel;
 
     if (!voiceChannel) return message.channel.send('You need to be in a voice channel!');
-
     const botVoiceChannel = voiceChannel.guild.voiceStates.cache.get(message.client.user.id)?.channel;
 
     // Check if the bot is already in a voice channel
     if (botVoiceChannel && botVoiceChannel.id !== voiceChannel.id) {
         return message.channel.send('I am already playing music in another channel. Please wait until the current music is finished.');
     }
-
     const permissions = voiceChannel.permissionsFor(message.client.user);
     if (!permissions.has(PermissionFlagsBits.Connect) || !permissions.has(PermissionFlagsBits.Speak)) {
         return message.channel.send('I need the permissions to join and speak in your voice channel!');
@@ -159,7 +178,7 @@ async function execute(message, serverQueue) {
         }
     } else {
         try {
-            const songInfo = await ytdl.getInfo(searchString);
+            const songInfo = await ytdl.getInfo(searchString, { agent });
             song = {
                 title: songInfo.videoDetails.title,
                 url: songInfo.videoDetails.video_url,
@@ -206,7 +225,6 @@ async function execute(message, serverQueue) {
     }
 }
 
-
 async function handleQueue(guild, queueContruct, song) {
     const serverQueue = queue.get(guild.id);
 
@@ -249,7 +267,7 @@ function skip(message, serverQueue) {
     } else {
         play(message.guild, serverQueue.songs[0]);
     }
-	 message.channel.send(`Skipped to the next song. ${serverQueue.songs.length} song(s) remaining in the queue. Now playing: **${serverQueue.songs[0].title}**`);
+    message.channel.send(`Skipped to the next song. Now playing: **${serverQueue.songs[0].title}**`);
 }
 
 function stop(message, serverQueue) {
@@ -300,7 +318,7 @@ function play(guild, song) {
     let resource;
     try {
         if (song.source === 'youtube') {
-            resource = createAudioResource(ytdl(song.url, { filter: 'audioonly', highWaterMark: 1 << 25 }));
+            resource = createAudioResource(ytdl(song.url, { filter: 'audioonly', highWaterMark: 1 << 25, agent }));
         } else if (song.source === 'soundcloud') {
             resource = createAudioResource(song.url);
         }
@@ -335,8 +353,7 @@ function play(guild, song) {
     });
 
     player.on('error', (error) => console.error('Player Error:', error));
-	
-
+    
     serverQueue.textChannel.send(`Now playing: **${song.title}**`).then(() => {
         // Create and send the button controls after announcing the song
         const row = new ActionRowBuilder()
@@ -371,5 +388,3 @@ function play(guild, song) {
 }
 
 client.login(token);
-
-

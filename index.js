@@ -8,405 +8,6 @@ const { joinVoiceChannel, createAudioPlayer, createAudioResource, AudioPlayerSta
 const token = process.env.token;
 const youtube = new YouTube(process.env.YOUTUBE_API_KEY);
 
-// Replace these with your actual cookie values from EditThisCookie
-const cookies = [
-  
-{
-    "domain": ".youtube.com",
-    "expirationDate": 1756169387.351173,
-    "hostOnly": false,
-    "httpOnly": false,
-    "name": "__Secure-1PAPISID",
-    "path": "/",
-    "sameSite": "unspecified",
-    "secure": true,
-    "session": false,
-    "storeId": "0",
-    "value": "niPKWaU4ljm6sord/A1N09p-Ha-OPrFOSn",
-    "id": 1
-},
-{
-    "domain": ".youtube.com",
-    "expirationDate": 1756169387.351292,
-    "hostOnly": false,
-    "httpOnly": true,
-    "name": "__Secure-1PSID",
-    "path": "/",
-    "sameSite": "unspecified",
-    "secure": true,
-    "session": false,
-    "storeId": "0",
-    "value": "g.a000mAjrg_tsgRAegxfz73becCejuuFF1e0BLs9DvFoykpTRah3SsDoatGB57qYWfShfIDM3OQACgYKAbwSARMSFQHGX2Mi-8OQPMs7uN9mijC49pJ9thoVAUF8yKpOq__3SljSOmbrxpbdtmtc0076",
-    "id": 2
-},
-{
-    "domain": ".youtube.com",
-    "expirationDate": 1754616527.412321,
-    "hostOnly": false,
-    "httpOnly": true,
-    "name": "__Secure-1PSIDCC",
-    "path": "/",
-    "sameSite": "unspecified",
-    "secure": true,
-    "session": false,
-    "storeId": "0",
-    "value": "AKEyXzVpCKu31KOiBKNir10KKuE2mzJEvpKfWQxHyoz3ZoQCtFo0WTrN35SjX2Agmu1TCyRuZVOf",
-    "id": 3
-},
-{
-    "domain": ".youtube.com",
-    "expirationDate": 1754616242.566922,
-    "hostOnly": false,
-    "httpOnly": true,
-    "name": "__Secure-1PSIDTS",
-    "path": "/",
-    "sameSite": "unspecified",
-    "secure": true,
-    "session": false,
-    "storeId": "0",
-    "value": "sidts-CjIB4E2dkdT3oYSpMluzufS7xuTxofMf6mN5Ah9iNLOxn9fXA3I0a3QtSN5iKiu8I3TdpRAA",
-    "id": 4
-},
-{
-    "domain": ".youtube.com",
-    "expirationDate": 1757513787.4438,
-    "hostOnly": false,
-    "httpOnly": false,
-    "name": "__Secure-3PAPISID",
-    "path": "/",
-    "sameSite": "no_restriction",
-    "secure": true,
-    "session": false,
-    "storeId": "0",
-    "value": "niPKWaU4ljm6sord/A1N09p-Ha-OPrFOSn",
-    "id": 5
-},
-{
-    "domain": ".youtube.com",
-    "expirationDate": 1757513787.444059,
-    "hostOnly": false,
-    "httpOnly": true,
-    "name": "__Secure-3PSID",
-    "path": "/",
-    "sameSite": "no_restriction",
-    "secure": true,
-    "session": false,
-    "storeId": "0",
-    "value": "g.a000mAjrg_tsgRAegxfz73becCejuuFF1e0BLs9DvFoykpTRah3S27fyBOb11V8bPQHb1LIfSgACgYKAa4SARMSFQHGX2MiRuprmErv0SdFJpNhftUoORoVAUF8yKqkk621tE7rvKyXROxgpwgT0076",
-    "id": 6
-},
-{
-    "domain": ".youtube.com",
-    "expirationDate": 1754616527.412354,
-    "hostOnly": false,
-    "httpOnly": true,
-    "name": "__Secure-3PSIDCC",
-    "path": "/",
-    "sameSite": "no_restriction",
-    "secure": true,
-    "session": false,
-    "storeId": "0",
-    "value": "AKEyXzUUo9wz7CzntBXDXU6d9MK6HYufZywaSmSwor6ciajLyN1zHtn3EAE9AQbaDk3H70oTXAU",
-    "id": 7
-},
-{
-    "domain": ".youtube.com",
-    "expirationDate": 1754616242.567013,
-    "hostOnly": false,
-    "httpOnly": true,
-    "name": "__Secure-3PSIDTS",
-    "path": "/",
-    "sameSite": "no_restriction",
-    "secure": true,
-    "session": false,
-    "storeId": "0",
-    "value": "sidts-CjIB4E2dkdT3oYSpMluzufS7xuTxofMf6mN5Ah9iNLOxn9fXA3I0a3QtSN5iKiu8I3TdpRAA",
-    "id": 8
-},
-{
-    "domain": ".youtube.com",
-    "expirationDate": 1746599927.768578,
-    "hostOnly": false,
-    "httpOnly": false,
-    "name": "_ga",
-    "path": "/",
-    "sameSite": "unspecified",
-    "secure": false,
-    "session": false,
-    "storeId": "0",
-    "value": "GA1.1.1356055939.1710742377",
-    "id": 9
-},
-{
-    "domain": ".youtube.com",
-    "expirationDate": 1745302404.927879,
-    "hostOnly": false,
-    "httpOnly": false,
-    "name": "_ga_5RPMD1E2GM",
-    "path": "/",
-    "sameSite": "unspecified",
-    "secure": false,
-    "session": false,
-    "storeId": "0",
-    "value": "GS1.1.1710742376.1.1.1710742404.32.0.0",
-    "id": 10
-},
-{
-    "domain": ".youtube.com",
-    "expirationDate": 1745302390.053261,
-    "hostOnly": false,
-    "httpOnly": false,
-    "name": "_ga_R3HTL8G9BH",
-    "path": "/",
-    "sameSite": "unspecified",
-    "secure": false,
-    "session": false,
-    "storeId": "0",
-    "value": "GS1.2.1710742390.1.0.1710742390.0.0.0",
-    "id": 11
-},
-{
-    "domain": ".youtube.com",
-    "expirationDate": 1746599936.693663,
-    "hostOnly": false,
-    "httpOnly": false,
-    "name": "_ga_VCGEPY40VB",
-    "path": "/",
-    "sameSite": "unspecified",
-    "secure": false,
-    "session": false,
-    "storeId": "0",
-    "value": "GS1.1.1712039927.2.1.1712039936.51.0.0",
-    "id": 12
-},
-{
-    "domain": ".youtube.com",
-    "expirationDate": 1756169387.351144,
-    "hostOnly": false,
-    "httpOnly": false,
-    "name": "APISID",
-    "path": "/",
-    "sameSite": "unspecified",
-    "secure": false,
-    "session": false,
-    "storeId": "0",
-    "value": "6lkf3haUrG_9-bA_/A1Dg6saPXyS8tf86v",
-    "id": 13
-},
-{
-    "domain": ".youtube.com",
-    "expirationDate": 1756169387.35096,
-    "hostOnly": false,
-    "httpOnly": true,
-    "name": "HSID",
-    "path": "/",
-    "sameSite": "unspecified",
-    "secure": false,
-    "session": false,
-    "storeId": "0",
-    "value": "AIIepua8bWh71gwE_",
-    "id": 14
-},
-{
-    "domain": ".youtube.com",
-    "expirationDate": 1757640521.888184,
-    "hostOnly": false,
-    "httpOnly": true,
-    "name": "LOGIN_INFO",
-    "path": "/",
-    "sameSite": "no_restriction",
-    "secure": true,
-    "session": false,
-    "storeId": "0",
-    "value": "AFmmF2swRQIhAJZEernVKqxEnXnsr5T0GZhqWC-L-D66xxEuzPDuxvBoAiBgFDXxyNWpE4LWDOwlagil65nGGyTqOA9I91l2l9UfVw:QUQ3MjNmekxMZzJ6Uk90YVE1NnRwTHgycGt3UHhvTVdoS3VQQWZSU1A4N01ndkpkbEliZDVoVDZ5WkYyR3U1MEhKWTljRTlGdUFZNldFN1ZLdmxQY0ZDdlh0amM2dVRsOS02cEtCdGh5cHJsR1dVd2pHUGhVanpoeU85NHh1ZlZ5WlNObG5JMHBOZWs3d2RCUGlfSFZ6eUhSYlhuZzZsTlNB",
-    "id": 15
-},
-{
-    "domain": ".youtube.com",
-    "expirationDate": 1757640523.737699,
-    "hostOnly": false,
-    "httpOnly": false,
-    "name": "PREF",
-    "path": "/",
-    "sameSite": "unspecified",
-    "secure": true,
-    "session": false,
-    "storeId": "0",
-    "value": "f6=40000000&f7=4100&tz=America.Chicago&f5=30000",
-    "id": 16
-},
-{
-    "domain": ".youtube.com",
-    "expirationDate": 1756169387.351158,
-    "hostOnly": false,
-    "httpOnly": false,
-    "name": "SAPISID",
-    "path": "/",
-    "sameSite": "unspecified",
-    "secure": true,
-    "session": false,
-    "storeId": "0",
-    "value": "niPKWaU4ljm6sord/A1N09p-Ha-OPrFOSn",
-    "id": 17
-},
-{
-    "domain": ".youtube.com",
-    "expirationDate": 1732417111.357406,
-    "hostOnly": false,
-    "httpOnly": false,
-    "name": "SEARCH_SAMESITE",
-    "path": "/",
-    "sameSite": "strict",
-    "secure": false,
-    "session": false,
-    "storeId": "0",
-    "value": "CgQIn5sB",
-    "id": 18
-},
-{
-    "domain": ".youtube.com",
-    "expirationDate": 1756169387.351278,
-    "hostOnly": false,
-    "httpOnly": false,
-    "name": "SID",
-    "path": "/",
-    "sameSite": "unspecified",
-    "secure": false,
-    "session": false,
-    "storeId": "0",
-    "value": "g.a000mAjrg_tsgRAegxfz73becCejuuFF1e0BLs9DvFoykpTRah3SktKHWsZcqE0teO75lc5IjwACgYKAZ0SARMSFQHGX2MinN4qPsbO5Xfb4MopJxlQshoVAUF8yKoHPhbAeb2m4k5Bgy7gMsw10076",
-    "id": 19
-},
-{
-    "domain": ".youtube.com",
-    "expirationDate": 1754616527.412204,
-    "hostOnly": false,
-    "httpOnly": false,
-    "name": "SIDCC",
-    "path": "/",
-    "sameSite": "unspecified",
-    "secure": false,
-    "session": false,
-    "storeId": "0",
-    "value": "AKEyXzWSNuNmlAK8BHUv0yd4HJ0KYtpU578W5r5er7rZXR2lbsXTqIxFwbPBZe7MtmIEGLnFwfk",
-    "id": 20
-},
-{
-    "domain": ".youtube.com",
-    "expirationDate": 1756169387.351129,
-    "hostOnly": false,
-    "httpOnly": true,
-    "name": "SSID",
-    "path": "/",
-    "sameSite": "unspecified",
-    "secure": true,
-    "session": false,
-    "storeId": "0",
-    "value": "AeZJsmdC1gIK19T39",
-    "id": 21
-},
-{
-    "domain": ".youtube.com",
-    "expirationDate": 1723080532,
-    "hostOnly": false,
-    "httpOnly": false,
-    "name": "ST-3opvp5",
-    "path": "/",
-    "sameSite": "unspecified",
-    "secure": false,
-    "session": false,
-    "storeId": "0",
-    "value": "session_logininfo=AFmmF2swRQIhAJZEernVKqxEnXnsr5T0GZhqWC-L-D66xxEuzPDuxvBoAiBgFDXxyNWpE4LWDOwlagil65nGGyTqOA9I91l2l9UfVw%3AQUQ3MjNmekxMZzJ6Uk90YVE1NnRwTHgycGt3UHhvTVdoS3VQQWZSU1A4N01ndkpkbEliZDVoVDZ5WkYyR3U1MEhKWTljRTlGdUFZNldFN1ZLdmxQY0ZDdlh0amM2dVRsOS02cEtCdGh5cHJsR1dVd2pHUGhVanpoeU85NHh1ZlZ5WlNObG5JMHBOZWs3d2RCUGlfSFZ6eUhSYlhuZzZsTlNB",
-    "id": 22
-},
-{
-    "domain": ".youtube.com",
-    "expirationDate": 1723080528,
-    "hostOnly": false,
-    "httpOnly": false,
-    "name": "ST-l3hjtt",
-    "path": "/",
-    "sameSite": "unspecified",
-    "secure": false,
-    "session": false,
-    "storeId": "0",
-    "value": "session_logininfo=AFmmF2swRQIhAJZEernVKqxEnXnsr5T0GZhqWC-L-D66xxEuzPDuxvBoAiBgFDXxyNWpE4LWDOwlagil65nGGyTqOA9I91l2l9UfVw%3AQUQ3MjNmekxMZzJ6Uk90YVE1NnRwTHgycGt3UHhvTVdoS3VQQWZSU1A4N01ndkpkbEliZDVoVDZ5WkYyR3U1MEhKWTljRTlGdUFZNldFN1ZLdmxQY0ZDdlh0amM2dVRsOS02cEtCdGh5cHJsR1dVd2pHUGhVanpoeU85NHh1ZlZ5WlNObG5JMHBOZWs3d2RCUGlfSFZ6eUhSYlhuZzZsTlNB",
-    "id": 23
-},
-{
-    "domain": ".youtube.com",
-    "expirationDate": 1723080528,
-    "hostOnly": false,
-    "httpOnly": false,
-    "name": "ST-tladcw",
-    "path": "/",
-    "sameSite": "unspecified",
-    "secure": false,
-    "session": false,
-    "storeId": "0",
-    "value": "session_logininfo=AFmmF2swRQIhAJZEernVKqxEnXnsr5T0GZhqWC-L-D66xxEuzPDuxvBoAiBgFDXxyNWpE4LWDOwlagil65nGGyTqOA9I91l2l9UfVw%3AQUQ3MjNmekxMZzJ6Uk90YVE1NnRwTHgycGt3UHhvTVdoS3VQQWZSU1A4N01ndkpkbEliZDVoVDZ5WkYyR3U1MEhKWTljRTlGdUFZNldFN1ZLdmxQY0ZDdlh0amM2dVRsOS02cEtCdGh5cHJsR1dVd2pHUGhVanpoeU85NHh1ZlZ5WlNObG5JMHBOZWs3d2RCUGlfSFZ6eUhSYlhuZzZsTlNB",
-    "id": 24
-},
-{
-    "domain": ".youtube.com",
-    "expirationDate": 1723080529,
-    "hostOnly": false,
-    "httpOnly": false,
-    "name": "ST-xuwub9",
-    "path": "/",
-    "sameSite": "unspecified",
-    "secure": false,
-    "session": false,
-    "storeId": "0",
-    "value": "session_logininfo=AFmmF2swRQIhAJZEernVKqxEnXnsr5T0GZhqWC-L-D66xxEuzPDuxvBoAiBgFDXxyNWpE4LWDOwlagil65nGGyTqOA9I91l2l9UfVw%3AQUQ3MjNmekxMZzJ6Uk90YVE1NnRwTHgycGt3UHhvTVdoS3VQQWZSU1A4N01ndkpkbEliZDVoVDZ5WkYyR3U1MEhKWTljRTlGdUFZNldFN1ZLdmxQY0ZDdlh0amM2dVRsOS02cEtCdGh5cHJsR1dVd2pHUGhVanpoeU85NHh1ZlZ5WlNObG5JMHBOZWs3d2RCUGlfSFZ6eUhSYlhuZzZsTlNB",
-    "id": 25
-},
-{
-    "domain": ".youtube.com",
-    "expirationDate": 1730268019.469594,
-    "hostOnly": false,
-    "httpOnly": true,
-    "name": "VISITOR_PRIVACY_METADATA",
-    "path": "/",
-    "sameSite": "no_restriction",
-    "secure": true,
-    "session": false,
-    "storeId": "0",
-    "value": "CgJVUxIEGgAgPQ%3D%3D",
-    "id": 26
-},
-{
-    "domain": ".youtube.com",
-    "hostOnly": false,
-    "httpOnly": false,
-    "name": "wide",
-    "path": "/",
-    "sameSite": "unspecified",
-    "secure": false,
-    "session": true,
-    "storeId": "0",
-    "value": "1",
-    "id": 27
-},
-{
-    "domain": ".youtube.com",
-    "expirationDate": 1738631904,
-    "hostOnly": false,
-    "httpOnly": false,
-    "name": "YT_CL",
-    "path": "/",
-    "sameSite": "unspecified",
-    "secure": true,
-    "session": false,
-    "storeId": "0",
-    "value": "{\"loctok\":\"ACih6ZPTyQeduJA6lsOG4dNyNTdy9bMw0Ls-1SfCImI_jhuQ-sWH6qED61M5GNyu2BjWFQpFzpg774XTXv93NBT8k2rC3KFocUs\"}",
-    "id": 28
-}
-
-];
-
-const agent = ytdl.createAgent(cookies);
-
 const client = new Client({
     intents: [
         GatewayIntentBits.Guilds,
@@ -500,7 +101,7 @@ async function execute(message, serverQueue) {
     const voiceChannel = message.member.voice.channel;
 
     if (!voiceChannel) return message.channel.send('You need to be in a voice channel!');
-    const botVoiceChannel = voiceChannel.guild.voiceStates.cache.get(message.client.user.id)?.channel;
+	 const botVoiceChannel = voiceChannel.guild.voiceStates.cache.get(message.client.user.id)?.channel;
 
     // Check if the bot is already in a voice channel
     if (botVoiceChannel && botVoiceChannel.id !== voiceChannel.id) {
@@ -556,7 +157,7 @@ async function execute(message, serverQueue) {
         }
     } else {
         try {
-            const songInfo = await ytdl.getInfo(searchString, { agent });
+            const songInfo = await ytdl.getInfo(searchString);
             song = {
                 title: songInfo.videoDetails.title,
                 url: songInfo.videoDetails.video_url,
@@ -645,7 +246,7 @@ function skip(message, serverQueue) {
     } else {
         play(message.guild, serverQueue.songs[0]);
     }
-    message.channel.send(`Skipped to the next song. Now playing: **${serverQueue.songs[0].title}**`);
+	 message.channel.send(`Skipped to the next song. ${serverQueue.songs.length} song(s) remaining in the queue. Now playing: **${serverQueue.songs[0].title}**`);
 }
 
 function stop(message, serverQueue) {
@@ -696,7 +297,7 @@ function play(guild, song) {
     let resource;
     try {
         if (song.source === 'youtube') {
-            resource = createAudioResource(ytdl(song.url, { filter: 'audioonly', highWaterMark: 1 << 25, agent }));
+            resource = createAudioResource(ytdl(song.url, { filter: 'audioonly', highWaterMark: 1 << 25 }));
         } else if (song.source === 'soundcloud') {
             resource = createAudioResource(song.url);
         }
@@ -731,7 +332,8 @@ function play(guild, song) {
     });
 
     player.on('error', (error) => console.error('Player Error:', error));
-    
+	
+
     serverQueue.textChannel.send(`Now playing: **${song.title}**`).then(() => {
         // Create and send the button controls after announcing the song
         const row = new ActionRowBuilder()
@@ -766,3 +368,5 @@ function play(guild, song) {
 }
 
 client.login(token);
+
+
